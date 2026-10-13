@@ -1,68 +1,726 @@
-import express from 'express';
-import { randomBytes } from 'node:crypto';
-import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync } from 'node:fs';
-import * as d from './domain.js';
-import { seed, productionSeed } from './seed.js';
-import {template,previewFile,importDrafts} from './imports.js';
-export function createApp({state,dbPath,demo=true,adminCredentials}={}){
- const initialState=()=>demo?seed():productionSeed(adminCredentials||{phone:process.env.ADMIN_PHONE,password:process.env.ADMIN_PASSWORD});
- let storage; if(dbPath){mkdirSync(dbPath.slice(0,dbPath.lastIndexOf('/')),{recursive:true});storage=new DatabaseSync(dbPath);storage.exec('PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS state (id INTEGER PRIMARY KEY, json TEXT NOT NULL)');const row=storage.prepare('SELECT json FROM state WHERE id=1').get();state=row?JSON.parse(row.json):initialState();}state ||= initialState();if(!demo&&state.mode!=='production')throw new Error('演示数据库不可用于生产，请使用独立DATA_DIR');
- const save=()=>{if(storage)storage.prepare('INSERT OR REPLACE INTO state (id,json) VALUES (1,?)').run(JSON.stringify(state));};save();
- const app=express();app.use(express.json({limit:'8mb'}));app.use((req,res,next)=>{res.set('Cache-Control','no-store');const token=req.headers.authorization?.replace('Bearer ','');const session=state.sessions.find(s=>s.token===token&&new Date(s.expires)>new Date());req.user=session?state.users.find(u=>u.id===session.userId):null;next();});
- const auth=(req,res,next)=>req.user?next():next(Object.assign(new Error('请先登录'),{status:401}));
- const admin=(req,res,next)=>req.user?.role==='admin'?next():next(Object.assign(new Error('需要超级管理员权限'),{status:403}));
- const editor=(req,res,next)=>['admin','editor'].includes(req.user?.role)?next():next(Object.assign(new Error('需要招聘编辑权限'),{status:403}));
- // Each synchronous mutation commits atomically to SQLite; rollback in-memory state on error.
- const mutate=(fn)=>(req,res,next)=>{const before=structuredClone(state);try{const result=fn(req,res);save();if(!res.headersSent)res.json(result??{ok:true});}catch(e){state=before;next(e);}};
- const validateJob=(job)=>{if(!job.company?.trim()||!job.title?.trim())d.fail('单位与标题必填');for(const key of ['uploadedAt','start','deadline'])if(job[key]&&!Number.isFinite(Date.parse(job[key])))d.fail('公告时间格式错误');for(const key of ['sourceUrl','applyUrl'])if(job[key]&&!/^https:\/\//.test(job[key]))d.fail('官方链接必须使用HTTPS');if(job.introImages&&!job.introImages.every(url=>/^https:\/\//.test(url)))d.fail('介绍图片必须使用HTTPS');};
- const audit=(user,action,entity)=>state.audit.push({id:d.id(),userId:user.id,action,entity,at:new Date().toISOString()});
- const safeUser=(u)=>u?Object.fromEntries(Object.entries(u).filter(([k])=>k!=='password')):null;
- const login=(u)=>{const token=randomBytes(32).toString('hex');state.sessions.push({token,userId:u.id,expires:new Date(Date.now()+7*86400000).toISOString()});return {token,user:safeUser(u)};};
- const own=(arr,req,key='id')=>{const found=arr.find(x=>x[key]===req.params.id&&x.userId===req.user.id);if(!found)d.fail('内容不存在',404);return found;};
- app.get('/api/health',(req,res)=>res.json({ok:true,mode:demo?'demo':'production',storage:storage?'sqlite':'memory'}));
- app.get('/api/bootstrap',(req,res)=>{d.expireGifts(state);d.syncMessages(state);save();const u=req.user;res.json({demo,user:safeUser(u),entitlement:d.entitlement(state,u),stats:d.statistics(state),config:state.config,records:u?state.records.filter(r=>r.userId===u.id):[],favorites:u?state.favorites.filter(f=>f.userId===u.id).map(f=>f.jobId):[],distributor:!!d.distributor(state,u),wallet:u&&d.distributor(state,u)?d.wallet(state,u.id):null});});
- app.get('/api/jobs',(req,res)=>{let q={};try{q=JSON.parse(req.query.q||'{}');}catch{d.fail('筛选格式无效');}if(!req.user&&(q.search||Object.keys(q).some(k=>k!=='scope')||q.scope!=='latest'&&q.scope))d.fail('请先登录',401);let jobs=d.queryJobs(state,q);const total=jobs.length;const page=Math.max(1,Number(req.query.page)||1);if(!d.privileged(state,req.user)&&page>1)d.fail('开通会员查看更多',403);const limit=10;const result=jobs.slice((page-1)*limit,page*limit).map(j=>d.serializeJob(state,j,req.user));res.json({items:result,total,page,hasMore:page*limit<total,limited:!d.privileged(state,req.user)&&total>10});});
- app.get('/api/jobs/:id',auth,mutate((req)=>{const j=d.publicJobs(state).find(j=>j.id===req.params.id);if(!j)d.fail('公告已下架或不存在',404);if(!d.privileged(state,req.user)&&!state.favorites.some(f=>f.userId===req.user.id&&f.jobId===j.id)&&!state.records.some(r=>r.userId===req.user.id&&r.jobId===j.id)&&!d.queryJobs(state,JSON.parse(req.query.q||'{}')).slice(0,10).some(x=>x.id===j.id))d.fail('开通会员查看此公告',403);const date=d.day();if(!state.views.some(v=>v.userId===req.user.id&&v.jobId===j.id&&v.date===date)){state.views.push({userId:req.user.id,jobId:j.id,date});j.views++;}return d.serializeJob(state,j,req.user);}));
- app.get('/api/daily',auth,(req,res)=>{const date=req.query.date||d.day();d.syncMessages(state,date);save();res.json({date,new:d.queryJobs(state,{date,mode:'new'}).length,closing:d.queryJobs(state,{date,mode:'closing'}).length});});
- app.get('/api/messages',auth,(req,res)=>{d.syncMessages(state);save();res.json(state.messages.sort((a,b)=>b.date.localeCompare(a.date)).map(m=>({...m,read:(req.user.readMessages||[]).includes(m.id)})));});
- app.post('/api/messages/:id/read',auth,mutate(req=>{if(!state.messages.some(m=>m.id===req.params.id))d.fail('消息不存在',404);req.user.readMessages=[...new Set([...(req.user.readMessages||[]),req.params.id])];}));
- app.post('/api/auth/demo',mutate(req=>{if(!demo)d.fail('演示入口已关闭',404);const u=state.users.find(u=>u.id===`demo-${req.body.type||'senior'}`);if(!u)d.fail('账号不存在');if(req.body.referrerId){d.bindReferral(state,u,req.body.referrerId);d.visit(state,req.body.referrerId,u.id);}return login(u);}));
- app.post('/api/auth/login',mutate(req=>{if(!/^1\d{10}$/.test(req.body.phone||''))d.fail('请输入正确手机号');let u=state.users.find(u=>u.phone===req.body.phone);if(req.body.mode==='code'){if(!demo)d.fail('短信适配器尚未接入',503);if(req.body.code!=='123456')d.fail('演示验证码为123456');if(!u){u={id:d.id(),phone:req.body.phone,nickname:'新同学',avatar:'新',batch:'2027届',major:'',seeking:'求职中',password:d.hashPassword(randomBytes(20).toString('hex')),role:'user',at:new Date().toISOString()};state.users.push(u);}}else if(!u||!d.checkPassword(req.body.password||'',u.password))d.fail('手机号或密码错误',401);if(req.body.referrerId){d.bindReferral(state,u,req.body.referrerId);d.visit(state,req.body.referrerId,u.id);}return login(u);}));
- app.post('/api/auth/logout',auth,mutate(req=>{state.sessions=state.sessions.filter(s=>s.token!==req.headers.authorization?.replace('Bearer ',''));}));
- app.patch('/api/profile',auth,mutate(req=>{for(const k of ['nickname','batch','major','seeking'])if(req.body[k]!==undefined)req.user[k]=String(req.body[k]).slice(0,120);if(req.body.avatar!==undefined){const avatar=String(req.body.avatar);if(avatar.length>4*1024*1024)d.fail('头像超过限制');if(avatar.length>1&&!/^data:image\/(png|jpeg|webp);base64,/.test(avatar))d.fail('头像图片格式错误');req.user.avatar=avatar;}return safeUser(req.user);}));
- app.post('/api/account',auth,mutate(req=>{if(!demo)d.fail('身份验证服务尚未接入',503);if(req.body.code!=='123456')d.fail('请输入正确验证码');if(req.body.action==='phone'){if(!/^1\d{10}$/.test(req.body.phone||''))d.fail('手机号格式无效');if(state.users.some(u=>u.phone===req.body.phone&&u.id!==req.user.id))d.fail('该手机号已绑定其他账号');req.user.phone=req.body.phone;}if(req.body.action==='password'){if((req.body.password||'').length<8)d.fail('密码至少8位');req.user.password=d.hashPassword(req.body.password);}if(req.body.action==='wechat')req.user.wechatBound=!req.user.wechatBound;return safeUser(req.user);}));
- app.post('/api/favorites/:id',auth,mutate(req=>{if(!d.publicJobs(state).some(j=>j.id===req.params.id))d.fail('公告不可用',404);const index=state.favorites.findIndex(f=>f.jobId===req.params.id&&f.userId===req.user.id);if(index<0)state.favorites.push({jobId:req.params.id,userId:req.user.id});else state.favorites.splice(index,1);return {favorite:index<0};}));
- app.get('/api/favorites',auth,(req,res)=>res.json(state.favorites.filter(f=>f.userId===req.user.id).map(f=>state.jobs.find(j=>j.id===f.jobId)).filter(j=>j&&!j.hidden&&!j.deleted).map(j=>d.serializeJob(state,j,req.user))));
- app.post('/api/records',auth,mutate(req=>d.saveRecord(state,req.user,req.body)));
- app.post('/api/records/:id/progress',auth,mutate(req=>d.saveRecord(state,req.user,req.body,req.params.id)));
- app.patch('/api/records/:id',auth,mutate(req=>{const r=own(state.records,req);if(!req.body.company?.trim()||!req.body.position?.trim())d.fail('请填写单位和岗位');for(const k of ['company','position','notes','referralCode','referralUrl','applyUrl','sourceUrl'])r[k]=String(req.body[k]||'');return r;}));
- app.delete('/api/records/:id',auth,mutate(req=>{own(state.records,req);state.records=state.records.filter(r=>r.id!==req.params.id);}));
- app.get('/api/orders',auth,(req,res)=>res.json(state.orders.filter(o=>o.userId===req.user.id).sort((a,b)=>b.at.localeCompare(a.at))));
- app.get('/api/rights',auth,(req,res)=>res.json(state.rights.filter(r=>r.userId===req.user.id)));
- app.post('/api/orders',auth,mutate(req=>{const p=state.config.packages.find(p=>p.id===req.body.packageId);if(!p)d.fail('套餐不可用');const o={...p,id:d.id(),userId:req.user.id,status:'pending',at:new Date().toISOString()};state.orders.push(o);return o;}));
- app.post('/api/orders/:id/pay',auth,mutate(req=>{if(!demo)d.fail('微信支付尚未接入，不能支付',503);return d.settleOrder(state,own(state.orders,req));}));
- app.post('/api/distribution/apply',auth,mutate(req=>{req.user.distributor=true;return {ok:true};}));
- app.post('/api/referral/visit',auth,mutate(req=>{d.visit(state,req.body.sharerId,req.user.id);d.bindReferral(state,req.user,req.body.sharerId);}));
- const distributionAuth=(req,res,next)=>d.distributor(state,req.user)?next():next(Object.assign(new Error('请先开通分销资格'),{status:403}));
- app.get('/api/distribution',auth,distributionAuth,(req,res)=>{const user=req.user;const customers=state.users.filter(u=>u.referrerId===user.id);const paid=new Set(state.orders.filter(o=>o.status==='paid'&&customers.some(u=>u.id===o.userId)).map(o=>o.userId));const rows=state.ledger.filter(l=>l.userId===user.id);const commission=rows.filter(l=>l.kind==='commission');res.json({wallet:d.wallet(state,user.id),referrer:state.users.find(u=>u.id===user.referrerId)?.nickname||'暂无推荐人',today:commission.filter(l=>d.day(l.at)===d.day()).reduce((s,l)=>s+l.cents,0),thisMonth:commission.filter(l=>d.month(l.at)===d.month()).reduce((s,l)=>s+l.cents,0),orderCount:new Set(commission.map(l=>l.orderId)).size,todayReferrals:customers.filter(u=>u.referralAt&&d.day(u.referralAt)===d.day()).length,paidCustomers:paid.size,conversion:customers.length?Math.round(paid.size/customers.length*100):0,ledger:rows,withdrawals:state.withdrawals.filter(w=>w.userId===user.id),customers:customers.map(u=>({...safeUser(u),phone:u.phone.slice(0,3)+'****'+u.phone.slice(-4),orders:state.orders.filter(o=>o.userId===u.id),visits:state.visits.filter(v=>v.sharerId===u.id).length})),team:d.partner(state,user)?customers.filter(u=>u.teamAt).map(u=>({...safeUser(u),phone:u.phone.slice(0,3)+'****'+u.phone.slice(-4),visits:state.visits.filter(v=>v.sharerId===u.id).length})):[],orders:state.orders.filter(o=>commission.some(l=>l.orderId===o.id))});});
- app.post('/api/withdrawals',auth,mutate(req=>d.createWithdrawal(state,req.user,req.body)));
- app.post('/api/withdrawals/:id/cancel',auth,mutate(req=>d.changeWithdrawal(state,own(state.withdrawals,req),'cancel')));
- app.get('/api/gifts',auth,(req,res)=>{if(d.entitlement(state,req.user).type!=='senior')d.fail('仅高级合伙人可管理赠送',403);d.expireGifts(state);save();res.json({quotas:d.quotas(state,req.user),items:state.gifts.filter(g=>g.ownerId===req.user.id)});});
- app.post('/api/gifts',auth,mutate(req=>d.generateGift(state,req.user,req.body)));
- app.post('/api/gifts/:id/revoke',auth,mutate(req=>{const g=state.gifts.find(g=>g.id===req.params.id&&g.ownerId===req.user.id);if(!g||g.status!=='待领取')d.fail('凭证不可作废');if(d.entitlement(state,req.user).type!=='senior')d.fail('无赠送权限',403);g.status='已作废';g.returned=true;}));
- app.post('/api/redeem',auth,mutate(req=>d.redeemGift(state,req.user,req.body.code)));
- app.get('/api/admin',auth,editor,(req,res)=>res.json({jobs:state.jobs,config:state.config,users:req.user.role==='admin'?state.users.map(safeUser):[],orders:req.user.role==='admin'?state.orders:[],withdrawals:req.user.role==='admin'?state.withdrawals:[],gifts:req.user.role==='admin'?state.gifts:[],audit:state.audit}));
- app.get('/api/admin/import/template',auth,editor,async(req,res)=>res.json({filename:'校招公告标准模板.xlsx',file:await template()}));
- app.post('/api/admin/import/preview',auth,editor,async(req,res)=>res.json(await previewFile(req.body,state.jobs)));
- app.post('/api/admin/import',auth,editor,mutate(req=>{const jobs=importDrafts(state,req.body.items);jobs.forEach(j=>audit(req.user,'批量保存草稿',j.id));return {count:jobs.length};}));
- app.patch('/api/admin/topics',auth,editor,mutate(req=>{if(!Array.isArray(req.body.topics))d.fail('专题配置格式错误');state.config.topics=req.body.topics;audit(req.user,'修改专题','topics');return state.config.topics;}));
- app.post('/api/admin/jobs',auth,editor,mutate(req=>{validateJob(req.body);const exists=state.jobs.find(j=>j.id===req.body.id);const j={...req.body,id:exists?.id||d.id(),createdAt:exists?.createdAt||new Date().toISOString(),uploadedAt:req.body.uploadedAt||new Date().toISOString(),logo:req.body.logo||'building',positions:req.body.positions||[],majors:req.body.majors||[],cities:req.body.cities||[],views:exists?.views||0,published:!!req.body.published};if(exists)Object.assign(exists,j);else state.jobs.push(j);audit(req.user,'保存公告',j.id);return j;}));
- app.patch('/api/admin/jobs/:id',auth,editor,mutate(req=>{const j=state.jobs.find(j=>j.id===req.params.id);if(!j)d.fail('公告不存在',404);validateJob({...j,...req.body});Object.assign(j,req.body);audit(req.user,'修改公告',j.id);return j;}));
- app.patch('/api/admin/config',auth,admin,mutate(req=>{if(req.body.packages?.some(p=>!Number.isSafeInteger(p.cents)||p.cents<=0))d.fail('套餐金额必须为正整数分');if(req.body.rates&&Object.values(req.body.rates).some(r=>r.direct<0||r.direct>100||r.team<0||r.team>100))d.fail('佣金比例必须在0至100之间');state.config={...state.config,...req.body,ruleVersion:state.config.ruleVersion+1};audit(req.user,'修改配置','config');return state.config;}));
- app.post('/api/admin/orders/:id/refund',auth,admin,mutate(req=>{if(!demo)d.fail('真实退款适配器未配置',503);const o=state.orders.find(o=>o.id===req.params.id);if(!o)d.fail('订单不存在',404);d.refundOrder(state,o,req.body.reason);audit(req.user,'整笔退款',o.id);return o;}));
- app.post('/api/admin/withdrawals/:id',auth,admin,mutate(req=>{const w=state.withdrawals.find(w=>w.id===req.params.id);if(!w)d.fail('申请不存在',404);d.changeWithdrawal(state,w,req.body.action,req.body.reason||'',true);audit(req.user,`提现${req.body.action}`,w.id);return w;}));
- app.post('/api/admin/users/:id/authorize',auth,admin,mutate(req=>{const u=state.users.find(u=>u.id===req.params.id);if(!u)d.fail('用户不存在',404);if(req.body.type==='revoke-senior')d.revokeGiftPermission(state,u);else{if(!['vip','partner','senior'].includes(req.body.type))d.fail('身份无效');state.rights.push({id:d.id(),userId:u.id,type:req.body.type,days:Number(req.body.days)||365,at:new Date().toISOString(),source:'后台授权'});}audit(req.user,'用户权益授权',u.id);}));
- app.use((err,req,res,next)=>res.status(err.status||500).json({message:err.status?err.message:'服务暂时不可用，请重试'}));
- return {app,getState:()=>state,close:()=>storage?.close()};
+import express from "express";
+import { randomBytes } from "node:crypto";
+import { DatabaseSync } from "node:sqlite";
+import { mkdirSync } from "node:fs";
+import * as d from "./domain.js";
+import { seed, productionSeed } from "./seed.js";
+import { template, previewFile, importDrafts } from "./imports.js";
+export function createApp({
+  state,
+  dbPath,
+  demo = true,
+  adminCredentials,
+} = {}) {
+  const initialState = () =>
+    demo
+      ? seed()
+      : productionSeed(
+          adminCredentials || {
+            phone: process.env.ADMIN_PHONE,
+            password: process.env.ADMIN_PASSWORD,
+          },
+        );
+  let storage;
+  if (dbPath) {
+    mkdirSync(dbPath.slice(0, dbPath.lastIndexOf("/")), { recursive: true });
+    storage = new DatabaseSync(dbPath);
+    storage.exec(
+      "PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS state (id INTEGER PRIMARY KEY, json TEXT NOT NULL)",
+    );
+    const row = storage.prepare("SELECT json FROM state WHERE id=1").get();
+    state = row ? JSON.parse(row.json) : initialState();
+  }
+  state ||= initialState();
+  if (!demo && state.mode !== "production")
+    throw new Error("演示数据库不可用于生产，请使用独立DATA_DIR");
+  const save = () => {
+    if (storage)
+      storage
+        .prepare("INSERT OR REPLACE INTO state (id,json) VALUES (1,?)")
+        .run(JSON.stringify(state));
+  };
+  save();
+  const app = express();
+  app.use(express.json({ limit: "8mb" }));
+  app.use((req, res, next) => {
+    res.set("Cache-Control", "no-store");
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    const session = state.sessions.find(
+      (s) => s.token === token && new Date(s.expires) > new Date(),
+    );
+    req.user = session
+      ? state.users.find((u) => u.id === session.userId)
+      : null;
+    next();
+  });
+  const auth = (req, res, next) =>
+    req.user
+      ? next()
+      : next(Object.assign(new Error("请先登录"), { status: 401 }));
+  const admin = (req, res, next) =>
+    req.user?.role === "admin"
+      ? next()
+      : next(Object.assign(new Error("需要超级管理员权限"), { status: 403 }));
+  const editor = (req, res, next) =>
+    ["admin", "editor"].includes(req.user?.role)
+      ? next()
+      : next(Object.assign(new Error("需要招聘编辑权限"), { status: 403 }));
+  // Each synchronous mutation commits atomically to SQLite; rollback in-memory state on error.
+  const mutate = (fn) => (req, res, next) => {
+    const before = structuredClone(state);
+    try {
+      const result = fn(req, res);
+      save();
+      if (!res.headersSent) res.json(result ?? { ok: true });
+    } catch (e) {
+      state = before;
+      next(e);
+    }
+  };
+  const validateJob = (job) => {
+    if (!job.company?.trim() || !job.title?.trim()) d.fail("单位与标题必填");
+    for (const key of ["uploadedAt", "start", "deadline"])
+      if (job[key] && !Number.isFinite(Date.parse(job[key])))
+        d.fail("公告时间格式错误");
+    for (const key of ["sourceUrl", "applyUrl"])
+      if (job[key] && !/^https:\/\//.test(job[key]))
+        d.fail("官方链接必须使用HTTPS");
+    if (
+      job.introImages &&
+      !job.introImages.every((url) => /^https:\/\//.test(url))
+    )
+      d.fail("介绍图片必须使用HTTPS");
+  };
+  const audit = (user, action, entity) =>
+    state.audit.push({
+      id: d.id(),
+      userId: user.id,
+      action,
+      entity,
+      at: new Date().toISOString(),
+    });
+  const safeUser = (u) =>
+    u
+      ? Object.fromEntries(Object.entries(u).filter(([k]) => k !== "password"))
+      : null;
+  const login = (u) => {
+    const token = randomBytes(32).toString("hex");
+    state.sessions.push({
+      token,
+      userId: u.id,
+      expires: new Date(Date.now() + 7 * 86400000).toISOString(),
+    });
+    return { token, user: safeUser(u) };
+  };
+  const own = (arr, req, key = "id") => {
+    const found = arr.find(
+      (x) => x[key] === req.params.id && x.userId === req.user.id,
+    );
+    if (!found) d.fail("内容不存在", 404);
+    return found;
+  };
+  app.get("/api/health", (req, res) =>
+    res.json({
+      ok: true,
+      mode: demo ? "demo" : "production",
+      storage: storage ? "sqlite" : "memory",
+    }),
+  );
+  app.get("/api/bootstrap", (req, res) => {
+    d.expireGifts(state);
+    d.syncMessages(state);
+    save();
+    const u = req.user;
+    res.json({
+      demo,
+      user: safeUser(u),
+      entitlement: d.entitlement(state, u),
+      stats: d.statistics(state),
+      config: state.config,
+      records: u ? state.records.filter((r) => r.userId === u.id) : [],
+      favorites: u
+        ? state.favorites.filter((f) => f.userId === u.id).map((f) => f.jobId)
+        : [],
+      distributor: !!d.distributor(state, u),
+      wallet: u && d.distributor(state, u) ? d.wallet(state, u.id) : null,
+    });
+  });
+  app.get("/api/jobs", (req, res) => {
+    let q = {};
+    try {
+      q = JSON.parse(req.query.q || "{}");
+    } catch {
+      d.fail("筛选格式无效");
+    }
+    if (
+      !req.user &&
+      (q.search ||
+        Object.keys(q).some((k) => k !== "scope") ||
+        (q.scope !== "latest" && q.scope))
+    )
+      d.fail("请先登录", 401);
+    let jobs = d.queryJobs(state, q);
+    const total = jobs.length;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    if (!d.privileged(state, req.user) && page > 1)
+      d.fail("开通会员查看更多", 403);
+    const limit = 10;
+    const result = jobs
+      .slice((page - 1) * limit, page * limit)
+      .map((j) => d.serializeJob(state, j, req.user));
+    res.json({
+      items: result,
+      total,
+      page,
+      hasMore: page * limit < total,
+      limited: !d.privileged(state, req.user) && total > 10,
+    });
+  });
+  app.get(
+    "/api/jobs/:id",
+    auth,
+    mutate((req) => {
+      const j = d.publicJobs(state).find((j) => j.id === req.params.id);
+      if (!j) d.fail("公告已下架或不存在", 404);
+      if (
+        !d.privileged(state, req.user) &&
+        !state.favorites.some(
+          (f) => f.userId === req.user.id && f.jobId === j.id,
+        ) &&
+        !state.records.some(
+          (r) => r.userId === req.user.id && r.jobId === j.id,
+        ) &&
+        !d
+          .queryJobs(state, JSON.parse(req.query.q || "{}"))
+          .slice(0, 10)
+          .some((x) => x.id === j.id)
+      )
+        d.fail("开通会员查看此公告", 403);
+      const date = d.day();
+      if (
+        !state.views.some(
+          (v) =>
+            v.userId === req.user.id && v.jobId === j.id && v.date === date,
+        )
+      ) {
+        state.views.push({ userId: req.user.id, jobId: j.id, date });
+        j.views++;
+      }
+      return d.serializeJob(state, j, req.user);
+    }),
+  );
+  app.get("/api/daily", auth, (req, res) => {
+    const date = req.query.date || d.day();
+    d.syncMessages(state, date);
+    save();
+    res.json({
+      date,
+      new: d.queryJobs(state, { date, mode: "new" }).length,
+      closing: d.queryJobs(state, { date, mode: "closing" }).length,
+    });
+  });
+  app.get("/api/messages", auth, (req, res) => {
+    d.syncMessages(state);
+    save();
+    res.json(
+      state.messages
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .map((m) => ({
+          ...m,
+          read: (req.user.readMessages || []).includes(m.id),
+        })),
+    );
+  });
+  app.post(
+    "/api/messages/:id/read",
+    auth,
+    mutate((req) => {
+      if (!state.messages.some((m) => m.id === req.params.id))
+        d.fail("消息不存在", 404);
+      req.user.readMessages = [
+        ...new Set([...(req.user.readMessages || []), req.params.id]),
+      ];
+    }),
+  );
+  app.post(
+    "/api/auth/demo",
+    mutate((req) => {
+      if (!demo) d.fail("演示入口已关闭", 404);
+      const u = state.users.find(
+        (u) => u.id === `demo-${req.body.type || "senior"}`,
+      );
+      if (!u) d.fail("账号不存在");
+      if (req.body.referrerId) {
+        d.bindReferral(state, u, req.body.referrerId);
+        d.visit(state, req.body.referrerId, u.id);
+      }
+      return login(u);
+    }),
+  );
+  app.post(
+    "/api/auth/login",
+    mutate((req) => {
+      if (!/^1\d{10}$/.test(req.body.phone || "")) d.fail("请输入正确手机号");
+      let u = state.users.find((u) => u.phone === req.body.phone);
+      if (req.body.mode === "code") {
+        if (!demo) d.fail("短信适配器尚未接入", 503);
+        if (req.body.code !== "123456") d.fail("演示验证码为123456");
+        if (!u) {
+          u = {
+            id: d.id(),
+            phone: req.body.phone,
+            nickname: "新同学",
+            avatar: "新",
+            batch: "2027届",
+            major: "",
+            seeking: "求职中",
+            password: d.hashPassword(randomBytes(20).toString("hex")),
+            role: "user",
+            at: new Date().toISOString(),
+          };
+          state.users.push(u);
+        }
+      } else if (!u || !d.checkPassword(req.body.password || "", u.password))
+        d.fail("手机号或密码错误", 401);
+      if (req.body.referrerId) {
+        d.bindReferral(state, u, req.body.referrerId);
+        d.visit(state, req.body.referrerId, u.id);
+      }
+      return login(u);
+    }),
+  );
+  app.post(
+    "/api/auth/logout",
+    auth,
+    mutate((req) => {
+      state.sessions = state.sessions.filter(
+        (s) => s.token !== req.headers.authorization?.replace("Bearer ", ""),
+      );
+    }),
+  );
+  app.patch(
+    "/api/profile",
+    auth,
+    mutate((req) => {
+      for (const k of ["nickname", "batch", "major", "seeking"])
+        if (req.body[k] !== undefined)
+          req.user[k] = String(req.body[k]).slice(0, 120);
+      if (req.body.avatar !== undefined) {
+        const avatar = String(req.body.avatar);
+        if (avatar.length > 4 * 1024 * 1024) d.fail("头像超过限制");
+        if (
+          avatar.length > 1 &&
+          !/^data:image\/(png|jpeg|webp);base64,/.test(avatar)
+        )
+          d.fail("头像图片格式错误");
+        req.user.avatar = avatar;
+      }
+      return safeUser(req.user);
+    }),
+  );
+  app.post(
+    "/api/account",
+    auth,
+    mutate((req) => {
+      if (!demo) d.fail("身份验证服务尚未接入", 503);
+      if (req.body.code !== "123456") d.fail("请输入正确验证码");
+      if (req.body.action === "phone") {
+        if (!/^1\d{10}$/.test(req.body.phone || "")) d.fail("手机号格式无效");
+        if (
+          state.users.some(
+            (u) => u.phone === req.body.phone && u.id !== req.user.id,
+          )
+        )
+          d.fail("该手机号已绑定其他账号");
+        req.user.phone = req.body.phone;
+      }
+      if (req.body.action === "password") {
+        if ((req.body.password || "").length < 8) d.fail("密码至少8位");
+        req.user.password = d.hashPassword(req.body.password);
+      }
+      if (req.body.action === "wechat")
+        req.user.wechatBound = !req.user.wechatBound;
+      return safeUser(req.user);
+    }),
+  );
+  app.post(
+    "/api/favorites/:id",
+    auth,
+    mutate((req) => {
+      if (!d.publicJobs(state).some((j) => j.id === req.params.id))
+        d.fail("公告不可用", 404);
+      const index = state.favorites.findIndex(
+        (f) => f.jobId === req.params.id && f.userId === req.user.id,
+      );
+      if (index < 0)
+        state.favorites.push({ jobId: req.params.id, userId: req.user.id });
+      else state.favorites.splice(index, 1);
+      return { favorite: index < 0 };
+    }),
+  );
+  app.get("/api/favorites", auth, (req, res) =>
+    res.json(
+      state.favorites
+        .filter((f) => f.userId === req.user.id)
+        .map((f) => state.jobs.find((j) => j.id === f.jobId))
+        .filter((j) => j && !j.hidden && !j.deleted)
+        .map((j) => d.serializeJob(state, j, req.user)),
+    ),
+  );
+  app.post(
+    "/api/records",
+    auth,
+    mutate((req) => d.saveRecord(state, req.user, req.body)),
+  );
+  app.post(
+    "/api/records/:id/progress",
+    auth,
+    mutate((req) => d.saveRecord(state, req.user, req.body, req.params.id)),
+  );
+  app.patch(
+    "/api/records/:id",
+    auth,
+    mutate((req) => {
+      const r = own(state.records, req);
+      if (!req.body.company?.trim() || !req.body.position?.trim())
+        d.fail("请填写单位和岗位");
+      for (const k of [
+        "company",
+        "position",
+        "notes",
+        "referralCode",
+        "referralUrl",
+        "applyUrl",
+        "sourceUrl",
+      ])
+        r[k] = String(req.body[k] || "");
+      return r;
+    }),
+  );
+  app.delete(
+    "/api/records/:id",
+    auth,
+    mutate((req) => {
+      own(state.records, req);
+      state.records = state.records.filter((r) => r.id !== req.params.id);
+    }),
+  );
+  app.get("/api/orders", auth, (req, res) =>
+    res.json(
+      state.orders
+        .filter((o) => o.userId === req.user.id)
+        .sort((a, b) => b.at.localeCompare(a.at)),
+    ),
+  );
+  app.get("/api/rights", auth, (req, res) =>
+    res.json(state.rights.filter((r) => r.userId === req.user.id)),
+  );
+  app.post(
+    "/api/orders",
+    auth,
+    mutate((req) => {
+      const p = state.config.packages.find((p) => p.id === req.body.packageId);
+      if (!p) d.fail("套餐不可用");
+      const o = {
+        ...p,
+        id: d.id(),
+        userId: req.user.id,
+        status: "pending",
+        at: new Date().toISOString(),
+      };
+      state.orders.push(o);
+      return o;
+    }),
+  );
+  app.post(
+    "/api/orders/:id/pay",
+    auth,
+    mutate((req) => {
+      if (!demo) d.fail("微信支付尚未接入，不能支付", 503);
+      return d.settleOrder(state, own(state.orders, req));
+    }),
+  );
+  app.post(
+    "/api/distribution/apply",
+    auth,
+    mutate((req) => {
+      req.user.distributor = true;
+      return { ok: true };
+    }),
+  );
+  app.post(
+    "/api/referral/visit",
+    auth,
+    mutate((req) => {
+      d.visit(state, req.body.sharerId, req.user.id);
+      d.bindReferral(state, req.user, req.body.sharerId);
+    }),
+  );
+  const distributionAuth = (req, res, next) =>
+    d.distributor(state, req.user)
+      ? next()
+      : next(Object.assign(new Error("请先开通分销资格"), { status: 403 }));
+  app.get("/api/distribution", auth, distributionAuth, (req, res) => {
+    const user = req.user;
+    const customers = state.users.filter((u) => u.referrerId === user.id);
+    const paid = new Set(
+      state.orders
+        .filter(
+          (o) =>
+            o.status === "paid" && customers.some((u) => u.id === o.userId),
+        )
+        .map((o) => o.userId),
+    );
+    const rows = state.ledger.filter((l) => l.userId === user.id);
+    const commission = rows.filter((l) => l.kind === "commission");
+    res.json({
+      wallet: d.wallet(state, user.id),
+      referrer:
+        state.users.find((u) => u.id === user.referrerId)?.nickname ||
+        "暂无推荐人",
+      today: commission
+        .filter((l) => d.day(l.at) === d.day())
+        .reduce((s, l) => s + l.cents, 0),
+      thisMonth: commission
+        .filter((l) => d.month(l.at) === d.month())
+        .reduce((s, l) => s + l.cents, 0),
+      orderCount: new Set(commission.map((l) => l.orderId)).size,
+      todayReferrals: customers.filter(
+        (u) => u.referralAt && d.day(u.referralAt) === d.day(),
+      ).length,
+      paidCustomers: paid.size,
+      conversion: customers.length
+        ? Math.round((paid.size / customers.length) * 100)
+        : 0,
+      ledger: rows,
+      withdrawals: state.withdrawals.filter((w) => w.userId === user.id),
+      customers: customers.map((u) => ({
+        ...safeUser(u),
+        phone: u.phone.slice(0, 3) + "****" + u.phone.slice(-4),
+        orders: state.orders.filter((o) => o.userId === u.id),
+        visits: state.visits.filter((v) => v.sharerId === u.id).length,
+      })),
+      team: d.partner(state, user)
+        ? customers
+            .filter((u) => u.teamAt)
+            .map((u) => ({
+              ...safeUser(u),
+              phone: u.phone.slice(0, 3) + "****" + u.phone.slice(-4),
+              visits: state.visits.filter((v) => v.sharerId === u.id).length,
+            }))
+        : [],
+      orders: state.orders.filter((o) =>
+        commission.some((l) => l.orderId === o.id),
+      ),
+    });
+  });
+  app.post(
+    "/api/withdrawals",
+    auth,
+    mutate((req) => d.createWithdrawal(state, req.user, req.body)),
+  );
+  app.post(
+    "/api/withdrawals/:id/cancel",
+    auth,
+    mutate((req) =>
+      d.changeWithdrawal(state, own(state.withdrawals, req), "cancel"),
+    ),
+  );
+  app.get("/api/gifts", auth, (req, res) => {
+    if (d.entitlement(state, req.user).type !== "senior")
+      d.fail("仅高级合伙人可管理赠送", 403);
+    d.expireGifts(state);
+    save();
+    res.json({
+      quotas: d.quotas(state, req.user),
+      items: state.gifts.filter((g) => g.ownerId === req.user.id),
+    });
+  });
+  app.post(
+    "/api/gifts",
+    auth,
+    mutate((req) => d.generateGift(state, req.user, req.body)),
+  );
+  app.post(
+    "/api/gifts/:id/revoke",
+    auth,
+    mutate((req) => {
+      const g = state.gifts.find(
+        (g) => g.id === req.params.id && g.ownerId === req.user.id,
+      );
+      if (!g || g.status !== "待领取") d.fail("凭证不可作废");
+      if (d.entitlement(state, req.user).type !== "senior")
+        d.fail("无赠送权限", 403);
+      g.status = "已作废";
+      g.returned = true;
+    }),
+  );
+  app.post(
+    "/api/redeem",
+    auth,
+    mutate((req) => d.redeemGift(state, req.user, req.body.code)),
+  );
+  app.get("/api/admin", auth, editor, (req, res) =>
+    res.json({
+      jobs: state.jobs,
+      config: state.config,
+      users: req.user.role === "admin" ? state.users.map(safeUser) : [],
+      orders: req.user.role === "admin" ? state.orders : [],
+      withdrawals: req.user.role === "admin" ? state.withdrawals : [],
+      gifts: req.user.role === "admin" ? state.gifts : [],
+      audit: state.audit,
+    }),
+  );
+  app.get("/api/admin/import/template", auth, editor, async (req, res) =>
+    res.json({ filename: "校招公告标准模板.xlsx", file: await template() }),
+  );
+  app.post("/api/admin/import/preview", auth, editor, async (req, res) =>
+    res.json(await previewFile(req.body, state.jobs)),
+  );
+  app.post(
+    "/api/admin/import",
+    auth,
+    editor,
+    mutate((req) => {
+      const jobs = importDrafts(state, req.body.items);
+      jobs.forEach((j) => audit(req.user, "批量保存草稿", j.id));
+      return { count: jobs.length };
+    }),
+  );
+  app.patch(
+    "/api/admin/topics",
+    auth,
+    editor,
+    mutate((req) => {
+      if (!Array.isArray(req.body.topics)) d.fail("专题配置格式错误");
+      state.config.topics = req.body.topics;
+      audit(req.user, "修改专题", "topics");
+      return state.config.topics;
+    }),
+  );
+  app.post(
+    "/api/admin/jobs",
+    auth,
+    editor,
+    mutate((req) => {
+      validateJob(req.body);
+      const exists = state.jobs.find((j) => j.id === req.body.id);
+      const j = {
+        ...req.body,
+        id: exists?.id || d.id(),
+        createdAt: exists?.createdAt || new Date().toISOString(),
+        uploadedAt: req.body.uploadedAt || new Date().toISOString(),
+        logo: req.body.logo || "building",
+        positions: req.body.positions || [],
+        majors: req.body.majors || [],
+        cities: req.body.cities || [],
+        views: exists?.views || 0,
+        published: !!req.body.published,
+      };
+      if (exists) Object.assign(exists, j);
+      else state.jobs.push(j);
+      audit(req.user, "保存公告", j.id);
+      return j;
+    }),
+  );
+  app.patch(
+    "/api/admin/jobs/:id",
+    auth,
+    editor,
+    mutate((req) => {
+      const j = state.jobs.find((j) => j.id === req.params.id);
+      if (!j) d.fail("公告不存在", 404);
+      validateJob({ ...j, ...req.body });
+      Object.assign(j, req.body);
+      audit(req.user, "修改公告", j.id);
+      return j;
+    }),
+  );
+  app.patch(
+    "/api/admin/config",
+    auth,
+    admin,
+    mutate((req) => {
+      if (
+        req.body.packages?.some(
+          (p) => !Number.isSafeInteger(p.cents) || p.cents <= 0,
+        )
+      )
+        d.fail("套餐金额必须为正整数分");
+      if (
+        req.body.rates &&
+        Object.values(req.body.rates).some(
+          (r) => r.direct < 0 || r.direct > 100 || r.team < 0 || r.team > 100,
+        )
+      )
+        d.fail("佣金比例必须在0至100之间");
+      state.config = {
+        ...state.config,
+        ...req.body,
+        ruleVersion: state.config.ruleVersion + 1,
+      };
+      audit(req.user, "修改配置", "config");
+      return state.config;
+    }),
+  );
+  app.post(
+    "/api/admin/orders/:id/refund",
+    auth,
+    admin,
+    mutate((req) => {
+      if (!demo) d.fail("真实退款适配器未配置", 503);
+      const o = state.orders.find((o) => o.id === req.params.id);
+      if (!o) d.fail("订单不存在", 404);
+      d.refundOrder(state, o, req.body.reason);
+      audit(req.user, "整笔退款", o.id);
+      return o;
+    }),
+  );
+  app.post(
+    "/api/admin/withdrawals/:id",
+    auth,
+    admin,
+    mutate((req) => {
+      const w = state.withdrawals.find((w) => w.id === req.params.id);
+      if (!w) d.fail("申请不存在", 404);
+      d.changeWithdrawal(
+        state,
+        w,
+        req.body.action,
+        req.body.reason || "",
+        true,
+      );
+      audit(req.user, `提现${req.body.action}`, w.id);
+      return w;
+    }),
+  );
+  app.post(
+    "/api/admin/users/:id/authorize",
+    auth,
+    admin,
+    mutate((req) => {
+      const u = state.users.find((u) => u.id === req.params.id);
+      if (!u) d.fail("用户不存在", 404);
+      if (req.body.type === "revoke-senior") d.revokeGiftPermission(state, u);
+      else {
+        if (!["vip", "partner", "senior"].includes(req.body.type))
+          d.fail("身份无效");
+        state.rights.push({
+          id: d.id(),
+          userId: u.id,
+          type: req.body.type,
+          days: Number(req.body.days) || 365,
+          at: new Date().toISOString(),
+          source: "后台授权",
+        });
+      }
+      audit(req.user, "用户权益授权", u.id);
+    }),
+  );
+  app.use((err, req, res, next) =>
+    res
+      .status(err.status || 500)
+      .json({ message: err.status ? err.message : "服务暂时不可用，请重试" }),
+  );
+  return { app, getState: () => state, close: () => storage?.close() };
 }

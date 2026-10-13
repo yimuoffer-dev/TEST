@@ -1,0 +1,197 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/daily/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/records/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/list/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/detail/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/messages/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/record-detail/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/favorites/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/membership/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/orders/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/rights/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/profile-edit/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/account/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/help/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/about/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/distribution/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/partner/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/funds/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/customers/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/team/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/distribution-orders/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/promotion/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/withdraw/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/gifts/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/redeem/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    },
+    {
+      "path": "pages/admin/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "校招指南"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationStyle": "custom",
+    "backgroundColor": "#F1F8FF"
+  }
+}

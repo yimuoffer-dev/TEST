@@ -1,8 +1,196 @@
-import ExcelJS from 'exceljs';
-import {fail,id} from './domain.js';
-export const HEADERS=['公告ID','单位名称','公告标题','企业性质','学历','招聘批次','招聘类型','工作地点','截止日期'];
-export async function template(){const workbook=new ExcelJS.Workbook();const sheet=workbook.addWorksheet('招聘公告');sheet.addRow(HEADERS);sheet.addRow(['','示例公司','示例2027届校园招聘','私企','本科及以上','2027届','秋招专场','上海|北京','2026-11-30']);sheet.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};sheet.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF007AFF'}};sheet.columns.forEach((col,i)=>col.width=i===2?35:18);return Buffer.from(await workbook.xlsx.writeBuffer()).toString('base64');}
-export function parseCsv(text){const rows=[];let row=[],cell='',quoted=false;for(let i=0;i<text.length;i++){const c=text[i];if(c==='"'){if(quoted&&text[i+1]==='"'){cell+='"';i++;}else quoted=!quoted;}else if(!quoted&&c===','){row.push(cell);cell='';}else if(!quoted&&c==='\n'){row.push(cell.replace(/\r$/,''));rows.push(row);row=[];cell='';}else cell+=c;}if(quoted)fail('CSV引号未闭合');if(cell||row.length){row.push(cell.replace(/\r$/,''));rows.push(row);}return rows;}
-export function previewRows(rows,jobs){const headers=rows.shift()?.map(v=>String(v||'').replace(/^\uFEFF/,''));if(headers?.join(',')!==HEADERS.join(','))fail('模板列不正确，请使用标准模板');const errors=[],warnings=[];const ids=new Set();const titles=new Set();const items=rows.filter(row=>row.some(v=>v!==null&&v!=='')).map((values,i)=>{const dateValue=values[8] instanceof Date?values[8].toISOString().slice(0,10):String(values[8]||'');const row={id:String(values[0]||'')||undefined,company:String(values[1]||''),title:String(values[2]||''),nature:String(values[3]||''),degree:String(values[4]||''),batch:String(values[5]||''),type:String(values[6]||''),cities:String(values[7]||'').split('|').filter(Boolean),deadline:dateValue?dateValue+'T23:59:59+08:00':null,published:false};if(!row.company||!row.title||!row.nature||!row.degree||!row.batch||!row.type||!row.cities.length)errors.push(`第${i+2}行缺少必填字段`);if(row.deadline&&(!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)||!Number.isFinite(Date.parse(row.deadline))))errors.push(`第${i+2}行截止日期无效`);if(row.id&&!jobs.some(j=>j.id===row.id))errors.push(`第${i+2}行公告ID不存在`);if(row.id&&ids.has(row.id))errors.push(`第${i+2}行公告ID重复`);if(row.id)ids.add(row.id);if(!row.id&&(jobs.some(j=>j.title===row.title)||titles.has(row.title)))warnings.push(`第${i+2}行疑似重复，默认不覆盖，请填写公告ID后重新校验`);titles.add(row.title);return row;});if(!items.length)errors.push('未找到待导入公告');return {items,errors,warnings};}
-export async function previewFile(data,jobs){if(data.format==='csv')return previewRows(parseCsv(data.text||''),jobs);if(data.format!=='xlsx')fail('仅支持.xlsx或CSV标准模板');if(!data.file||data.file.length>6*1024*1024)fail('文件为空或超过限制');const workbook=new ExcelJS.Workbook();try{await workbook.xlsx.load(Buffer.from(data.file,'base64'));}catch{fail('Excel文件无法解析');}const sheet=workbook.worksheets[0];if(!sheet)fail('Excel文件无工作表');if(sheet.rowCount>1001)fail('单次最多导入1000行');const rows=[];sheet.eachRow({includeEmpty:false},row=>rows.push(HEADERS.map((_,i)=>row.getCell(i+1).value??'')));return previewRows(rows,jobs);}
-export function importDrafts(state,items){if(!Array.isArray(items)||!items.length||items.length>1000)fail('导入行数无效');const rows=[HEADERS,...items.map(j=>[j.id||'',j.company,j.title,j.nature,j.degree,j.batch,j.type,(j.cities||[]).join('|'),j.deadline?.slice(0,10)||''])];const preview=previewRows(rows,state.jobs);if(preview.errors.length||preview.warnings.length)fail([...preview.errors,...preview.warnings].join('；'));const result=[];for(const incoming of preview.items){let j=state.jobs.find(j=>j.id===incoming.id);if(j){Object.assign(j,incoming,{published:false});}else{j={...incoming,id:id(),createdAt:new Date().toISOString(),uploadedAt:new Date().toISOString(),positions:[],majors:[],intro:'',logo:'building',views:0,hidden:false,deleted:false};state.jobs.push(j);}result.push(j);}return result;}
+import ExcelJS from "exceljs";
+import { fail, id } from "./domain.js";
+export const HEADERS = [
+  "公告ID",
+  "单位名称",
+  "公告标题",
+  "企业性质",
+  "学历",
+  "招聘批次",
+  "招聘类型",
+  "工作地点",
+  "截止日期",
+];
+export async function template() {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("招聘公告");
+  sheet.addRow(HEADERS);
+  sheet.addRow([
+    "",
+    "示例公司",
+    "示例2027届校园招聘",
+    "私企",
+    "本科及以上",
+    "2027届",
+    "秋招专场",
+    "上海|北京",
+    "2026-11-30",
+  ]);
+  sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+  sheet.getRow(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF007AFF" },
+  };
+  sheet.columns.forEach((col, i) => (col.width = i === 2 ? 35 : 18));
+  return Buffer.from(await workbook.xlsx.writeBuffer()).toString("base64");
+}
+export function parseCsv(text) {
+  const rows = [];
+  let row = [],
+    cell = "",
+    quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (quoted && text[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else quoted = !quoted;
+    } else if (!quoted && c === ",") {
+      row.push(cell);
+      cell = "";
+    } else if (!quoted && c === "\n") {
+      row.push(cell.replace(/\r$/, ""));
+      rows.push(row);
+      row = [];
+      cell = "";
+    } else cell += c;
+  }
+  if (quoted) fail("CSV引号未闭合");
+  if (cell || row.length) {
+    row.push(cell.replace(/\r$/, ""));
+    rows.push(row);
+  }
+  return rows;
+}
+export function previewRows(rows, jobs) {
+  const headers = rows
+    .shift()
+    ?.map((v) => String(v || "").replace(/^\uFEFF/, ""));
+  if (headers?.join(",") !== HEADERS.join(","))
+    fail("模板列不正确，请使用标准模板");
+  const errors = [],
+    warnings = [];
+  const ids = new Set();
+  const titles = new Set();
+  const items = rows
+    .filter((row) => row.some((v) => v !== null && v !== ""))
+    .map((values, i) => {
+      const dateValue =
+        values[8] instanceof Date
+          ? values[8].toISOString().slice(0, 10)
+          : String(values[8] || "");
+      const row = {
+        id: String(values[0] || "") || undefined,
+        company: String(values[1] || ""),
+        title: String(values[2] || ""),
+        nature: String(values[3] || ""),
+        degree: String(values[4] || ""),
+        batch: String(values[5] || ""),
+        type: String(values[6] || ""),
+        cities: String(values[7] || "")
+          .split("|")
+          .filter(Boolean),
+        deadline: dateValue ? dateValue + "T23:59:59+08:00" : null,
+        published: false,
+      };
+      if (
+        !row.company ||
+        !row.title ||
+        !row.nature ||
+        !row.degree ||
+        !row.batch ||
+        !row.type ||
+        !row.cities.length
+      )
+        errors.push(`第${i + 2}行缺少必填字段`);
+      if (
+        row.deadline &&
+        (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue) ||
+          !Number.isFinite(Date.parse(row.deadline)))
+      )
+        errors.push(`第${i + 2}行截止日期无效`);
+      if (row.id && !jobs.some((j) => j.id === row.id))
+        errors.push(`第${i + 2}行公告ID不存在`);
+      if (row.id && ids.has(row.id)) errors.push(`第${i + 2}行公告ID重复`);
+      if (row.id) ids.add(row.id);
+      if (
+        !row.id &&
+        (jobs.some((j) => j.title === row.title) || titles.has(row.title))
+      )
+        warnings.push(
+          `第${i + 2}行疑似重复，默认不覆盖，请填写公告ID后重新校验`,
+        );
+      titles.add(row.title);
+      return row;
+    });
+  if (!items.length) errors.push("未找到待导入公告");
+  return { items, errors, warnings };
+}
+export async function previewFile(data, jobs) {
+  if (data.format === "csv")
+    return previewRows(parseCsv(data.text || ""), jobs);
+  if (data.format !== "xlsx") fail("仅支持.xlsx或CSV标准模板");
+  if (!data.file || data.file.length > 6 * 1024 * 1024)
+    fail("文件为空或超过限制");
+  const workbook = new ExcelJS.Workbook();
+  try {
+    await workbook.xlsx.load(Buffer.from(data.file, "base64"));
+  } catch {
+    fail("Excel文件无法解析");
+  }
+  const sheet = workbook.worksheets[0];
+  if (!sheet) fail("Excel文件无工作表");
+  if (sheet.rowCount > 1001) fail("单次最多导入1000行");
+  const rows = [];
+  sheet.eachRow({ includeEmpty: false }, (row) =>
+    rows.push(HEADERS.map((_, i) => row.getCell(i + 1).value ?? "")),
+  );
+  return previewRows(rows, jobs);
+}
+export function importDrafts(state, items) {
+  if (!Array.isArray(items) || !items.length || items.length > 1000)
+    fail("导入行数无效");
+  const rows = [
+    HEADERS,
+    ...items.map((j) => [
+      j.id || "",
+      j.company,
+      j.title,
+      j.nature,
+      j.degree,
+      j.batch,
+      j.type,
+      (j.cities || []).join("|"),
+      j.deadline?.slice(0, 10) || "",
+    ]),
+  ];
+  const preview = previewRows(rows, state.jobs);
+  if (preview.errors.length || preview.warnings.length)
+    fail([...preview.errors, ...preview.warnings].join("；"));
+  const result = [];
+  for (const incoming of preview.items) {
+    let j = state.jobs.find((j) => j.id === incoming.id);
+    if (j) {
+      Object.assign(j, incoming, { published: false });
+    } else {
+      j = {
+        ...incoming,
+        id: id(),
+        createdAt: new Date().toISOString(),
+        uploadedAt: new Date().toISOString(),
+        positions: [],
+        majors: [],
+        intro: "",
+        logo: "building",
+        views: 0,
+        hidden: false,
+        deleted: false,
+      };
+      state.jobs.push(j);
+    }
+    result.push(j);
+  }
+  return result;
+}
