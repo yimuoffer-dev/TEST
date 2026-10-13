@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import * as d from './domain.js';
 import { seed } from './seed.js';
+import {template,previewFile,importDrafts} from './imports.js';
 export function createApp({state,dbPath, demo=true}={}){
  let storage; if(dbPath){mkdirSync(dbPath.slice(0,dbPath.lastIndexOf('/')),{recursive:true});storage=new DatabaseSync(dbPath);storage.exec('PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS state (id INTEGER PRIMARY KEY, json TEXT NOT NULL)');const row=storage.prepare('SELECT json FROM state WHERE id=1').get();state=row?JSON.parse(row.json):seed();}state ||= seed();
  const save=()=>{if(storage)storage.prepare('INSERT OR REPLACE INTO state (id,json) VALUES (1,?)').run(JSON.stringify(state));};save();
@@ -50,6 +51,10 @@ export function createApp({state,dbPath, demo=true}={}){
  app.post('/api/gifts/:id/revoke',auth,mutate(req=>{const g=state.gifts.find(g=>g.id===req.params.id&&g.ownerId===req.user.id);if(!g||g.status!=='待领取')d.fail('凭证不可作废');if(d.entitlement(state,req.user).type!=='senior')d.fail('无赠送权限',403);g.status='已作废';g.returned=true;}));
  app.post('/api/redeem',auth,mutate(req=>d.redeemGift(state,req.user,req.body.code)));
  app.get('/api/admin',auth,editor,(req,res)=>res.json({jobs:state.jobs,config:state.config,users:req.user.role==='admin'?state.users.map(safeUser):[],orders:req.user.role==='admin'?state.orders:[],withdrawals:req.user.role==='admin'?state.withdrawals:[],gifts:req.user.role==='admin'?state.gifts:[],audit:state.audit}));
+ app.get('/api/admin/import/template',auth,editor,async(req,res)=>res.json({filename:'校招公告标准模板.xlsx',file:await template()}));
+ app.post('/api/admin/import/preview',auth,editor,async(req,res)=>res.json(await previewFile(req.body,state.jobs)));
+ app.post('/api/admin/import',auth,editor,mutate(req=>{const jobs=importDrafts(state,req.body.items);jobs.forEach(j=>audit(req.user,'批量保存草稿',j.id));return {count:jobs.length};}));
+ app.patch('/api/admin/topics',auth,editor,mutate(req=>{if(!Array.isArray(req.body.topics))d.fail('专题配置格式错误');state.config.topics=req.body.topics;audit(req.user,'修改专题','topics');return state.config.topics;}));
  app.post('/api/admin/jobs',auth,editor,mutate(req=>{if(!req.body.company||!req.body.title)d.fail('单位与标题必填');const exists=state.jobs.find(j=>j.id===req.body.id);const j={...req.body,id:exists?.id||d.id(),createdAt:exists?.createdAt||new Date().toISOString(),uploadedAt:req.body.uploadedAt||new Date().toISOString(),logo:req.body.logo||'building',positions:req.body.positions||[],majors:req.body.majors||[],cities:req.body.cities||[],views:exists?.views||0,published:!!req.body.published};if(exists)Object.assign(exists,j);else state.jobs.push(j);audit(req.user,'保存公告',j.id);return j;}));
  app.patch('/api/admin/jobs/:id',auth,editor,mutate(req=>{const j=state.jobs.find(j=>j.id===req.params.id);if(!j)d.fail('公告不存在',404);Object.assign(j,req.body);audit(req.user,'修改公告',j.id);return j;}));
  app.patch('/api/admin/config',auth,admin,mutate(req=>{if(req.body.packages?.some(p=>!Number.isSafeInteger(p.cents)||p.cents<=0))d.fail('套餐金额必须为正整数分');if(req.body.rates&&Object.values(req.body.rates).some(r=>r.direct<0||r.direct>100||r.team<0||r.team>100))d.fail('佣金比例必须在0至100之间');state.config={...state.config,...req.body,ruleVersion:state.config.ruleVersion+1};audit(req.user,'修改配置','config');return state.config;}));
