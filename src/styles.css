@@ -1,4 +1,6 @@
-page, :root {
+/* 微信 WXSS 不支持通配选择器；浏览器根节点选择器仅输出到 H5。 */
+page,
+.app-shell {
   --blue: #1464ff;
   --text: #07163b;
   --muted: #7087ae;
@@ -6,11 +8,37 @@ page, :root {
   --surface: #fff;
   --ice: #f1f8ff;
 }
-* {
+/* #ifdef H5 */
+:root {
+  --blue: #1464ff;
+  --text: #07163b;
+  --muted: #7087ae;
+  --line: #e8f2ff;
+  --surface: #fff;
+  --ice: #f1f8ff;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  background: #eaf4fe;
+  font-variant-numeric: tabular-nums;
+}
+/* #endif */
+page,
+view,
+text,
+image,
+button,
+input,
+textarea,
+scroll-view {
   box-sizing: border-box;
 }
-page,
-body {
+page {
   margin: 0;
   color: var(--text);
   font-family:
@@ -43,11 +71,13 @@ button:active {
   opacity: 0.72;
   transition: opacity 80ms;
 }
+/* #ifdef H5 */
 button:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid #007aff;
   outline-offset: 3px;
 }
+/* #endif */
 button[disabled] {
   opacity: 0.48;
   cursor: not-allowed;
@@ -2686,8 +2716,17 @@ text {
     border-radius: 12px;
   }
 }
+/* #ifdef H5 */
 @media (prefers-reduced-motion: reduce) {
   * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* #endif */
+@media (prefers-reduced-motion: reduce) {
+  page, view, text, image, button, input, textarea, scroll-view {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;

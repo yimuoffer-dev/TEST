@@ -23,3 +23,9 @@ src/pages 的27个路由入口附生命周期注释：四根页面为 index/dail
 五尺寸截图由 Chromium 模拟视口生成，不是微信品牌真机截图。大字体测试为浏览器样式压力模拟，不等同于系统字体设置。下拉刷新和触底加载事件已接入，微信真实手势、键盘、安全区、分享与支付仍待真机/真实服务验收。
 
 最新截图：artifacts/delivery；测试源码：tests/e2e/delivery.spec.js；清单：docs/INTERACTION-CHECKLIST.md。
+
+## 2026-10-14 WXSS 编译修复
+
+微信开发者工具反馈 `app.wxss(1:108): unexpected token '*'`。原因是 H5 的通配选择器被输出到 WXSS。已将通配/浏览器根节点/键盘焦点规则限制为 H5；小程序使用 page/view/text/image/button/input/textarea/scroll-view 明确选择器。新增 tests/wxss.test.js 校验源样式的平台分支及全部生成 WXSS。
+
+下载仓库最新 artifacts/campus-all-code.zip，使用其中 dist/build/mp-weixin 替换旧编译目录；保留你自己的 AppID 和后端配置，在开发者工具“清缓存 → 全部清除”后重新编译。使用源码时先执行 `npm run build:mp-weixin`。构建与选择器回归可在当前环境执行；实际开发者工具重新编译结果仍以本机验收为准。
