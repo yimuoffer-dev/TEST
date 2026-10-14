@@ -6,6 +6,10 @@
 
 依据 PRD V2.1、UI 规范 V1.0 与六页组合参考开发。UniApp Vue 3 + Pinia + Vite 前端，Node REST API，SQLite 持久化。包含 H5 和微信小程序构建、管理后台、真实 Excel 导入及自动化测试。
 
+## 当前微信预览配置
+
+已配置 AppID `wxd7e4fbeec776ea2e` 和生产 API `https://test.offerxingqiu.cn`，详细步骤见 [微信预览说明](docs/WECHAT-PREVIEW.md)。可直接下载 artifacts/wechat-preview.zip 并导入 dist/build/mp-weixin；源码生产构建读取 .env.production。
+
 ## 快速运行
 
 需要 Node 22.13+（本项目验证版本 Node 24）、npm。

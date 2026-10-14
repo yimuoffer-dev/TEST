@@ -15,7 +15,7 @@ class DeliveryPackageTest(unittest.TestCase):
     def test_archive_integrity_and_runtime_files(self):
         with zipfile.ZipFile(ARCHIVE) as archive:
             self.assertIsNone(archive.testzip())
-            for filename in ['index.html', 'package.json', 'package-lock.json',
+            for filename in ['index.html', 'package.json', 'package-lock.json', '.env.production',
                              'src/pages.json', 'src/manifest.json',
                              'dist/build/h5/index.html',
                              'dist/build/mp-weixin/app.json']:
