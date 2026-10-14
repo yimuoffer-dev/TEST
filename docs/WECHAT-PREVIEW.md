@@ -1,6 +1,6 @@
 # 微信小程序预览与服务器文件的区别
 
-2026-10-15：微信 AppID 已配置为 wxd7e4fbeec776ea2e，生产 API 基址为 https://test.offerxingqiu.cn。
+2026-10-15：微信 AppID 已配置为 wx2249679a29811468，生产 API 基址为 https://test.offerxingqiu.cn。
 
 ## 直接使用预编译包
 

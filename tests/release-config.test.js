@@ -7,6 +7,7 @@ const env=fs.readFileSync('.env.production','utf8');
 const api=env.match(/^VITE_API_BASE=(.+)$/m)?.[1].trim();
 test('release config contains a valid WeChat AppID and HTTPS API origin',()=>{
   assert.match(manifest['mp-weixin'].appid,/^wx[0-9a-f]{16}$/);
+  assert.equal(manifest['mp-weixin'].appid,'wx2249679a29811468');
   assert.equal(manifest['mp-weixin'].setting.urlCheck,true);
   const url=new URL(api);
   assert.equal(url.protocol,'https:');

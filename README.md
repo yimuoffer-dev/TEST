@@ -8,7 +8,7 @@
 
 ## 当前微信预览配置
 
-已配置 AppID `wxd7e4fbeec776ea2e` 和生产 API `https://test.offerxingqiu.cn`，详细步骤见 [微信预览说明](docs/WECHAT-PREVIEW.md)。可直接下载 artifacts/wechat-preview.zip 并导入 dist/build/mp-weixin；源码生产构建读取 .env.production。
+已配置 AppID `wx2249679a29811468` 和生产 API `https://test.offerxingqiu.cn`，详细步骤见 [微信预览说明](docs/WECHAT-PREVIEW.md)。可直接下载 artifacts/wechat-preview.zip 并导入 dist/build/mp-weixin；源码生产构建读取 .env.production。
 
 ## 快速运行
 
