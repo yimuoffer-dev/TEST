@@ -1,4 +1,5 @@
 <script setup>
+// 头像展示组件：缺少图片时显示名称首字，避免破图。
 import { computed } from "vue";
 const props = defineProps({ value: String, small: Boolean });
 const image = computed(() =>

@@ -1,4 +1,5 @@
 <script setup>
+// 筛选使用独立草稿，取消不修改已应用条件；表单提交前执行必填校验。
 import { ref, computed, watch } from "vue";
 import Icon from "./Icon.vue";
 import { useCampus, today, statuses } from "../stores/campus";

@@ -1,4 +1,5 @@
 <script setup>
+// 跨端图标封装：微信端使用本地图片，避免外部 SVG 兼容差异。
 import { computed } from "vue";
 const props = defineProps({
   name: { type: String, default: "grid" },

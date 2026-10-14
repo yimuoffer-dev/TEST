@@ -1,8 +1,8 @@
-:root {
-  --blue: #007aff;
-  --text: #17233b;
-  --muted: #65758e;
-  --line: #e5ebf3;
+page, :root {
+  --blue: #1464ff;
+  --text: #07163b;
+  --muted: #7087ae;
+  --line: #e8f2ff;
   --surface: #fff;
   --ice: #f1f8ff;
 }
@@ -2785,3 +2785,71 @@ text {
   width: 100%;
   border-radius: 12px;
 }
+
+/* 附件 V2.1 原型视觉校准：保留实际字号适配，复用原型色值、玻璃卡片和背景素材。 */
+.app-shell, .app-shell.native {
+  background: radial-gradient(ellipse at 55% 0%, #b8e4ffbd, transparent 45%),
+    linear-gradient(160deg, #e9f7ff, #f8fcff 40%, #eaf5ff);
+}
+.app-header, .native .app-header { background: transparent; }
+.home-screen .app-header {
+  position: relative; overflow: hidden;
+  height: 110px; align-items: flex-end;
+}
+.home-screen .page-title { color: #1757b0; text-shadow: 0 1px #fff; }
+.card, .job-card, .record-card {
+  border: 1px solid #fff; background: rgba(255,255,255,.9);
+  border-radius: 12px; box-shadow: 0 3px 8px #82caff1c;
+}
+.search-field { background: #fff; border: 1px solid #ecf3ff; box-shadow: 0 3px 11px #6ab8e320; margin-bottom: 9px; }
+.topics { gap: 5px; margin: 0 0 8px; }
+.topic { border: 1px solid #ffffffc7; border-radius: 19px; min-width: 0;
+  padding: 6px 2px; gap: 3px; background: linear-gradient(135deg,#ffffffc9,#f6fcff91); }
+.topic-symbol { background: transparent !important; height: 32px; width: 32px; }
+.platform-stats { gap: 6px; padding: 0; background: transparent; }
+.platform-stats button { border: 1px solid white; border-radius: 13px;
+  min-height: 64px; background: linear-gradient(135deg,#bcddffb8,#e7ffffc9); }
+.platform-stats button:nth-child(2) { background: linear-gradient(140deg,#c6eeff,#efffff); }
+.platform-stats button:nth-child(3) { background: linear-gradient(140deg,#e6ffff,#caf5ff); }
+.platform-stats button:nth-child(4) { background: linear-gradient(140deg,#dde9ff,#f2e9ff); }
+.platform-stats button + button:before { display: none; }
+.platform-stats .stat-value { color: #10336e; }
+.platform-stats button:last-child .stat-value { color: #ff3e52; }
+.stat-caption { color: #2a5085; }
+.job-list { gap: 8px; }
+.job-card { padding: 9px 8px 8px; }
+.company-logo { border-radius: 10px; border-color: #e8f1ff; }
+.job-title { color: #07163b; }
+.job-tags, .job-footer { color: #7d91b0; }
+.publication { color: #ff3a43; }
+.primary, .floating-add { background: linear-gradient(110deg,#21b6fb,#1060ff); border: 1px solid #fff; box-shadow: 0 4px 13px #229aff24; }
+.bottom-tabs { background: #ffffffed; border-radius: 17px 17px 0 0; border-top: 1px solid #e8f2fe; }
+.week-calendar { background: #ffffff47; border: 1px solid #fff; border-radius: 16px; }
+.week-calendar .active { background: linear-gradient(130deg,#2470ff,#229fff); box-shadow: 0 4px 9px #299bff32; }
+.daily-stats .card { background: linear-gradient(125deg,#d5edff,#e8ffffb8); }
+.sheet, .confirm-dialog { background: radial-gradient(ellipse at top,#cbecffb5,transparent 50%),#f1f8ff; border: 1px solid #fff; }
+/* 小屏与系统大字体允许文字换行；保持控件触摸区域，避免截断表单内容。 */
+.stat-caption, .topic { white-space: normal; text-align: center; }
+.platform-stats button { min-width: 0; }
+.job-title-row { flex-wrap: wrap; }
+.page-content { overflow-wrap: anywhere; }
+@media (max-width: 350px) { .stat-caption { font-size: 10px; } .topic { font-size: 10px; } }
+
+/* 微信不支持本地图片作为 WXSS 背景，使用 image 元素，H5 与小程序共享同一素材。 */
+.prototype-hero { position: absolute; top: 0; left: 0; width: 100%; pointer-events: none; }
+.home-screen .app-header > button, .home-screen .app-header > .page-title { position: relative; z-index: 1; }
+
+/* 原型招聘卡片以 1:1 CSS 像素排列；长标题允许换行，不对整页做缩放。 */
+.job-card { position: relative; display: flex; gap: 9px; min-height: 92px; align-items: flex-start; }
+.job-card .job-main { flex: 1; min-width: 0; }
+.job-card .job-title-row { display: block; margin: 0 19px 6px 0; line-height: 1.5; }
+.job-card .job-title { font-size: 12px; line-height: 1.5; font-weight: 700; }
+.job-card .nature { font-size: 10px; padding: 2px 4px; margin-left: 4px; white-space: nowrap; background: #eaf4ff; color: #1968ff; }
+.job-card .job-tags { gap: 4px; font-size: 10px; margin: 0; line-height: 1.65; }
+.job-card .job-tags text { background: transparent; padding: 0; font-size: inherit; }
+.job-card .job-footer { margin: 5px 0 0; padding: 0; border: 0; gap: 2px; font-size: 9px; }
+.card-save { position: absolute; right: 4px; top: 5px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+.search-submit { flex: none; min-height: 28px; padding: 0 15px; font-size: 11px; border-radius: 22px; }
+/* 性质为随标题的紧凑行内徽标，防止继承旧版块级规则铺满整行。 */
+.job-card .job-title { display: inline; }
+.job-card .nature { display: inline-block; width: auto; }

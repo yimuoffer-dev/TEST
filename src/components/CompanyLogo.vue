@@ -1,4 +1,5 @@
 <script setup>
+// 企业标识优先使用本地素材，缺失时使用可识别的文字兜底。
 import { computed } from "vue";
 const props = defineProps({
   name: String,

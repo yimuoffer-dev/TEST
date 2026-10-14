@@ -1,4 +1,5 @@
 <script setup>
+// 公共空数据状态组件，提供说明与可选的恢复操作。
 import Icon from "./Icon.vue";
 defineProps({
   title: { type: String, default: "暂时没有内容" },

@@ -1,5 +1,7 @@
 # 校招指南 · 校招信息管理小程序
 
+本次前端改动与验证边界见 [前端交付说明](docs/FRONTEND-DELIVERY.md) 和 [交互测试清单](docs/INTERACTION-CHECKLIST.md)。以这两份文件和本次测试输出为准，历史交付截图保留在 artifacts/screens，最新截图在 artifacts/delivery。
+
 依据 PRD V2.1、UI 规范 V1.0 与六页组合参考开发。UniApp Vue 3 + Pinia + Vite 前端，Node REST API，SQLite 持久化。包含 H5 和微信小程序构建、管理后台、真实 Excel 导入及自动化测试。
 
 ## 快速运行

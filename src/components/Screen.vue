@@ -14,7 +14,20 @@ import EmptyState from "./EmptyState.vue";
 import Overlays from "./Overlays.vue";
 import Avatar from "./Avatar.vue";
 import { chooseImageData } from "../utils/images";
+// 页面共用业务状态；列表滚动与弹层状态在返回页面时保留。
 const s = useCampus();
+const refreshing = ref(false);
+const listPage = computed(() => ["home", "list", "daily", "favorites"].includes(s.route));
+// 原生 scroll-view 的下拉刷新事件，finally 保证失败后刷新指示器也能停止。
+async function pullRefresh() {
+  if (refreshing.value || s.loading) return;
+  refreshing.value = true;
+  try { await s.refresh(); } finally { refreshing.value = false; }
+}
+// 自动分页只在还有数据且无加载/弹层时触发，避免重复请求或重复会员提示。
+function reachBottom() {
+  if (listPage.value && s.hasMore && !s.loading && !s.modal) s.nextPage();
+}
 const navs = [
   { id: "home", title: "校招信息", icon: "home" },
   { id: "daily", title: "求职日报", icon: "file" },
@@ -501,11 +514,13 @@ const downloadPoster = () => {
       class="app-shell"
       :data-ready="s.ready && !!s.user"
       :class="{
-        native: ['home', 'list', 'detail', 'favorites'].includes(s.route),
+        native: false,
+        'home-screen': s.route === 'home',
       }"
     >
       <view class="app-header" :class="{ compact: !isTab }"
-        ><button
+        ><image v-if="s.route === 'home'" class="prototype-hero" src="/static/prototype-hero.png" mode="widthFix" />
+        <button
           class="ui-reset icon-button back-button"
           v-if="!isTab"
           aria-label="返回"
@@ -528,6 +543,12 @@ const downloadPoster = () => {
       <scroll-view
         scroll-y
         class="page-scroll"
+        :refresher-enabled="listPage"
+        :refresher-triggered="refreshing"
+        refresher-background="#e9f7ff"
+        :lower-threshold="100"
+        @refresherrefresh="pullRefresh"
+        @scrolltolower="reachBottom"
         :scroll-top="s.scrolls[s.route] || 0"
         @scroll="s.scrolls[s.route] = $event.detail.scrollTop"
       >
@@ -565,7 +586,7 @@ const downloadPoster = () => {
                   @click="s.search = ''"
                 >
                   ×
-                </button></view
+                </button><button class="ui-reset primary search-submit" @click="s.searchSubmit()">搜索</button></view
               >
               <template v-if="s.route === 'home'">
                 <view class="topics"
