@@ -2892,3 +2892,6 @@ text {
 /* 性质为随标题的紧凑行内徽标，防止继承旧版块级规则铺满整行。 */
 .job-card .job-title { display: inline; }
 .job-card .nature { display: inline-block; width: auto; }
+
+/* 生产环境管理入口：管理员/编辑可见，保持原有冰蓝按钮视觉。 */
+.admin-entry { display: block; width: 100%; min-height: 44px; margin-top: 12px; border-radius: 12px; background: #eaf4ff; color: var(--blue); }

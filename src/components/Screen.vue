@@ -1180,15 +1180,16 @@ const downloadPoster = () => {
                   class="ui-reset text-button"
                   @click="s.modal = 'demo-accounts'"
                 >
-                  切换演示身份</button
-                ><button
-                  class="ui-reset text-button"
-                  v-if="['admin', 'editor'].includes(s.user?.role)"
-                  @click="s.nav('admin')"
-                >
-                  进入管理后台
-                </button></view
+                  切换演示身份</button></view
               >
+              <!-- 后台入口由角色控制，不依赖演示模式；接口继续执行服务端鉴权。 -->
+              <button
+                class="ui-reset text-button admin-entry"
+                v-if="['admin', 'editor'].includes(s.user?.role)"
+                @click="s.nav('admin')"
+              >
+                进入管理后台
+              </button>
             </template>
             <template v-if="s.route === 'favorites'"
               ><JobCard

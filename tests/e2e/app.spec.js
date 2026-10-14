@@ -330,3 +330,25 @@ test("加载更多后详情返回保留列表页数，首屏请求失败可重�
   await expect(page.locator(".error-banner")).toHaveCount(0);
   await expect(page.locator(".job-card")).toHaveCount(10);
 });
+
+// Simulate the production bootstrap flag while retaining isolated test identities.
+// This catches accidentally nesting administrative navigation under the demo panel.
+test('生产模式个人中心后台入口按管理员、编辑和普通用户权限显示', async ({page}) => {
+  await page.route('**/api/bootstrap',async route=>{
+    const response=await route.fetch();
+    const data=await response.json();
+    await route.fulfill({response,json:{...data,demo:false}});
+  });
+  for(const type of ['admin','editor']) {
+    await login(page,type,'profile');
+    await expect(page.locator('.demo-panel')).toHaveCount(0);
+    await expect(page.locator('.admin-entry')).toBeVisible();
+    await page.locator('.admin-entry').click();
+    await expect(page.locator('.page-title')).toHaveText('管理后台');
+    await expect(page.locator('.admin-tabs')).toContainText('招聘公告');
+    if(type==='editor') await expect(page.locator('.admin-tabs')).not.toContainText('系统配置');
+  }
+  await login(page,'normal','profile');
+  await expect(page.locator('.demo-panel')).toHaveCount(0);
+  await expect(page.locator('.admin-entry')).toHaveCount(0);
+});
