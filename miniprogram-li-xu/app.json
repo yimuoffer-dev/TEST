@@ -1,0 +1,55 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/books/index",
+    "pages/book/index",
+    "pages/entry/index",
+    "pages/people/index",
+    "pages/person/index",
+    "pages/stats/index",
+    "pages/profile/index"
+  ],
+  "window": {
+    "navigationStyle": "custom",
+    "backgroundColor": "#f6ecdf",
+    "backgroundTextStyle": "dark"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "usingComponents": {
+    "page-header": "/components/page-header/index",
+    "ui-icon": "/components/ui-icon/index",
+    "flower-badge": "/components/flower-badge/index",
+    "book-cover": "/components/book-cover/index",
+    "section-title": "/components/section-title/index",
+    "segment-tabs": "/components/segment-tabs/index",
+    "action-button": "/components/action-button/index",
+    "bottom-nav": "/custom-tab-bar/index",
+    "page-background": "/components/page-background/index",
+    "new-book-modal": "/components/new-book-modal/index"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#28261f",
+    "selectedColor": "#a43e29",
+    "backgroundColor": "#f6ecdf",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "礼簿"
+      },
+      {
+        "pagePath": "pages/people/index",
+        "text": "往来"
+      },
+      {
+        "pagePath": "pages/stats/index",
+        "text": "统计"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的"
+      }
+    ]
+  }
+}

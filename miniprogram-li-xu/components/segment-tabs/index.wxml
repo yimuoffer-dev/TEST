@@ -1,0 +1,1 @@
+<view class="segments frame"><button wx:for="{{items}}" wx:key="*this" class="segment tap {{value === item ? 'selected' : ''}}" data-value="{{item}}" bindtap="select">{{item}}</button></view>

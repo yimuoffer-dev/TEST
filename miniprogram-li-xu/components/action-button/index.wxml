@@ -1,0 +1,1 @@
+<button class="primary-action tap" hover-class="pressed" disabled="{{disabled}}" bindtap="tap"><text class="action-plus">＋</text><text class="action-label">{{label}}</text></button>

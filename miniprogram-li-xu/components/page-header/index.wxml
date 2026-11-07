@@ -1,0 +1,2 @@
+<view class="status-space" style="height:{{statusHeight}}px"></view>
+<view wx:if="{{!hero}}" class="native-header"><button wx:if="{{back}}" class="header-back tap" aria-label="返回" bindtap="back"><ui-icon name="action_back" size="38"/></button><text class="header-title">{{title}}</text><button wx:if="{{action}}" class="header-action tap" aria-label="{{action === 'action_settings' ? '设置' : '更多'}}" bindtap="action"><ui-icon name="{{action}}" size="36"/></button></view>

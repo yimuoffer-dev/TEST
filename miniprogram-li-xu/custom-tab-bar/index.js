@@ -1,0 +1,1 @@
+Component({options:{styleIsolation:'apply-shared'},properties:{selected:{type:Number,value:0}},data:{tabs:[{key:'home',label:'礼簿',icon:'nav_ledger'},{key:'people',label:'往来',icon:'nav_people'},{key:'stats',label:'统计',icon:'nav_stats'},{key:'profile',label:'我的',icon:'nav_profile'}]},methods:{select(e){require('../utils/page').go(e.currentTarget.dataset.page);}}});

@@ -1,0 +1,36 @@
+const seed = require('../data/seed');
+const KEY = 'lixu.native.v1';
+const TYPES = {婚礼:'cover-wedding',满月:'cover-baby',乔迁:'cover-housewarming',寿宴:'cover-longevity',升学:'cover-graduation',追思:'cover-memorial'};
+let memory;
+const clone = value => JSON.parse(JSON.stringify(value));
+const text = (value,limit=80) => typeof value==='string'?value.trim().slice(0,limit):'';
+function money(cents){const whole=String(Math.floor(cents/100)).replace(/\B(?=(\d{3})+(?!\d))/g,',');const part=cents%100;return whole+(part?'.'+String(part).padStart(2,'0').replace(/0$/,''):'');}
+function parseMoney(value){
+ const s=String(value).trim();
+ if(!/^(?:0|[1-9]\d{0,6})(?:\.\d{1,2})?$/.test(s))throw Error('礼金须为正数，最多两位小数');
+ const [whole,frac='']=s.split('.');const cents=Number(whole)*100+Number((frac+'00').slice(0,2));
+ if(!Number.isSafeInteger(cents)||cents<=0)throw Error('请输入大于零的礼金');return cents;
+}
+function state(){
+ if(memory)return memory;
+ let saved;try{saved=wx.getStorageSync(KEY);}catch(e){}
+ memory={version:1,books:[],records:[],preferences:{reminders:true}};
+ if(saved&&saved.version===1&&Array.isArray(saved.books)&&Array.isArray(saved.records)){
+  memory.books=saved.books.slice(0,1000).filter(b=>b&&typeof b.id==='string'&&typeof b.name==='string'&&Object.prototype.hasOwnProperty.call(TYPES,b.type)&&typeof b.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(b.date));
+  const known=new Set(seed.books.concat(memory.books).map(b=>b.id));
+  memory.records=saved.records.slice(0,10000).filter(r=>r&&known.has(r.bookId)&&typeof r.id==='string'&&typeof r.name==='string'&&typeof r.personId==='string'&&['in','out'].includes(r.direction)&&Number.isSafeInteger(r.amountCents)&&r.amountCents>0&&r.amountCents<=999999999&&typeof r.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(r.date));
+  if(saved.preferences&&typeof saved.preferences.reminders==='boolean')memory.preferences.reminders=saved.preferences.reminders;
+ }
+ return memory;
+}
+function persist(){try{wx.setStorageSync(KEY,clone(state()));}catch(e){memory=undefined;throw Error('保存失败，请检查设备存储空间');}}
+function books(){return seed.books.concat(state().books).map(b=>{const added=state().records.filter(r=>r.bookId===b.id);const total=(b.totalCents||0)+added.filter(r=>r.direction==='in').reduce((s,r)=>s+r.amountCents,0);return {...b,cover:TYPES[b.type],count:(b.count||0)+added.length,totalCents:total,total:money(total)};});}
+function book(id){return books().find(b=>b.id===id)||null;}
+function records({bookId,personId,direction,tab}={}){return state().records.slice().reverse().concat(seed.records).filter(r=>(!bookId||(r.bookId===bookId&&r.listVisible!==false))&&(!personId||r.personId===personId)&&(!direction||r.direction===direction)&&(!tab||tab==='全部'||(tab==='收礼'?r.direction==='in':tab==='礼品'?!!r.gift:tab==='备注'?!!r.note:true))).map(r=>({...r,amount:money(r.amountCents),event:r.event||(book(r.bookId)||{}).type||'往来',dateText:r.date.replace(/-/g,'.'),shortDate:r.date.slice(5).replace('-','月')+'日',directionText:r.direction==='in'?'收礼':'送礼',art:r.art||'decor_plum',status:r.status||'已登记'}));}
+function people(){let list=seed.people.slice();for(const r of state().records){if(!list.some(p=>p.id===r.personId))list.push({id:r.personId,name:r.name,relation:r.relation,art:'decor_plum',frequency:0,receivedCents:0,sentCents:0,note:''});}return list.map(p=>{const added=state().records.filter(r=>r.personId===p.id);const latest=added[added.length-1];const received=(p.receivedCents||0)+added.filter(r=>r.direction==='in').reduce((s,r)=>s+r.amountCents,0);const sent=(p.sentCents||0)+added.filter(r=>r.direction==='out').reduce((s,r)=>s+r.amountCents,0);return {...p,frequency:p.frequency+added.length,received:money(received),sent:money(sent),amount:money(latest?latest.amountCents:p.amountCents||0),event:latest?(book(latest.bookId)||{}).type:p.event,date:latest?latest.date.slice(5).replace('-','月')+'日':p.date};});}
+function person(id){return people().find(p=>p.id===id)||null;}
+function addBook(input){const name=text(input.name,30),type=text(input.type),date=text(input.date);if(!name)throw Error('请输入礼簿名称');if(!Object.prototype.hasOwnProperty.call(TYPES,type))throw Error('请选择礼事类型');if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(new Date(date+'T00:00:00Z').getTime())||new Date(date+'T00:00:00Z').toISOString().slice(0,10)!==date)throw Error('请选择有效日期');const item={id:'b'+Date.now()+'-'+Math.random().toString(36).slice(2,7),name,type,date,lunar:date.replace(/-/g,'.'),longDate:date.replace(/-/g,'.'),host:text(input.host,20)||'我家',subtitle:'为重要的日子留下记录',count:0,totalCents:0};state().books.push(item);persist();return book(item.id);}
+function addRecord(input){const name=text(input.name,30),b=book(input.bookId);if(!b)throw Error('礼簿不存在');if(!name)throw Error('请填写姓名');if(!['in','out'].includes(input.direction))throw Error('请选择收礼或送礼');const amountCents=parseMoney(input.amount);const existing=people().find(p=>p.name===name);const now=new Date();const pad=n=>String(n).padStart(2,'0');const item={id:'r'+Date.now()+'-'+Math.random().toString(36).slice(2,7),bookId:b.id,personId:existing?existing.id:'p'+Date.now()+'-'+Math.random().toString(36).slice(2,7),name,relation:text(input.relation,12)||'亲友',direction:input.direction,amountCents,date:now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate()),time:pad(now.getHours())+':'+pad(now.getMinutes()),gift:text(input.gift,120),note:text(input.note,240),status:'已登记',art:existing?existing.art:'decor_plum'};state().records.push(item);persist();return item;}
+function statistics(year){const baseline=Number(year)===2026;const added=state().records.filter(r=>r.date.startsWith(String(year)+'-'));const source=(baseline?[]:seed.records.filter(r=>r.date.startsWith(String(year)+'-'))).concat(added);const received=(baseline?12860000:0)+source.filter(r=>r.direction==='in').reduce((s,r)=>s+r.amountCents,0);const sent=(baseline?9630000:0)+source.filter(r=>r.direction==='out').reduce((s,r)=>s+r.amountCents,0);return {year,baseline,received:money(received),sent:money(sent),count:baseline?412+new Set(added.filter(r=>!seed.people.some(p=>p.id===r.personId)).map(r=>r.personId)).size:new Set(source.map(r=>r.personId)).size,empty:!baseline&&!source.length,hasAdded:added.length>0,hasBreakdown:baseline?added.length>0:source.length>0,total:money(received+sent),monthly:Array.from({length:12},(_,i)=>{const month=String(i+1).padStart(2,'0');return {month:i+1,received:source.filter(r=>r.direction==='in'&&r.date.slice(5,7)===month).reduce((s,r)=>s+r.amountCents,0),sent:source.filter(r=>r.direction==='out'&&r.date.slice(5,7)===month).reduce((s,r)=>s+r.amountCents,0)};})};}
+function counters(){return {books:12+state().books.length,people:412+people().filter(p=>!seed.people.some(s=>s.id===p.id)).length,records:689+state().records.length,received:268+state().records.filter(r=>r.direction==='in').length,sent:193+state().records.filter(r=>r.direction==='out').length};}
+module.exports={books,book,people,person,records,addBook,addRecord,statistics,counters,parseMoney,money,types:Object.keys(TYPES),exportData:()=>clone(state()),preference:(value)=>{if(typeof value==='boolean'){state().preferences.reminders=value;persist();}return state().preferences.reminders;},_reset:()=>{memory=undefined;}};

@@ -1,0 +1,1 @@
+<image class="native-icon" style="width:{{size}}rpx;height:{{size}}rpx" src="{{source}}" mode="aspectFit" aria-hidden="true"/>

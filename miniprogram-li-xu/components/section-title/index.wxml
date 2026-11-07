@@ -1,0 +1,1 @@
+<view class="section-heading"><text class="section-heading-text">{{title}}</text><button wx:if="{{more}}" class="section-more tap" bindtap="tap">查看全部 <text>›</text></button><image wx:else class="heading-cloud" src="/assets/decor_cloud.webp" mode="aspectFit"/></view>

@@ -1,0 +1,322 @@
+[
+  {
+    "name": "nav_ledger_outline",
+    "source": "ui-reference/li-xu/assets/nav_ledger_outline.png",
+    "sourceSha256": "adf18ba7e813dd1335bf48c18d8aa2547820202f93723e4de3043a263c714814",
+    "width": 113,
+    "height": 138,
+    "bytes": 5342
+  },
+  {
+    "name": "nav_ledger_selected",
+    "source": "ui-reference/li-xu/assets/nav_ledger_selected.png",
+    "sourceSha256": "70ac3f41b6248f78cd779099ee73cfdff446053b828ff11f398894df448483ce",
+    "width": 117,
+    "height": 142,
+    "bytes": 6056
+  },
+  {
+    "name": "nav_people_outline",
+    "source": "ui-reference/li-xu/assets/nav_people_outline.png",
+    "sourceSha256": "2d7e2f4311b1118a49114d68e24f68075f337688ec5662e96925fbebe7235afb",
+    "width": 108,
+    "height": 96,
+    "bytes": 4608
+  },
+  {
+    "name": "nav_people_selected",
+    "source": "ui-reference/li-xu/assets/nav_people_selected.png",
+    "sourceSha256": "ba406d823fbf304deb4721c09e30ec0af98536ef1aed2d6cc338e27d5531904c",
+    "width": 110,
+    "height": 102,
+    "bytes": 5014
+  },
+  {
+    "name": "nav_stats_outline",
+    "source": "ui-reference/li-xu/assets/nav_stats_outline.png",
+    "sourceSha256": "5a6b730fe5f414de501652bb7e4826c338b5b107b009fc91c33e562c2ed63b8d",
+    "width": 105,
+    "height": 95,
+    "bytes": 4558
+  },
+  {
+    "name": "nav_stats_selected",
+    "source": "ui-reference/li-xu/assets/nav_stats_selected.png",
+    "sourceSha256": "230002de4bacbf51cef42106583d640210e84658f42ff0a50bac40ddb39f248f",
+    "width": 106,
+    "height": 99,
+    "bytes": 4506
+  },
+  {
+    "name": "nav_profile_outline",
+    "source": "ui-reference/li-xu/assets/nav_profile_outline.png",
+    "sourceSha256": "f639c21932b2ae1a66e335a0d8df61f06c1ea5eba06a657ab9144757e9f7f471",
+    "width": 99,
+    "height": 106,
+    "bytes": 4512
+  },
+  {
+    "name": "nav_profile_selected",
+    "source": "ui-reference/li-xu/assets/nav_profile_selected.png",
+    "sourceSha256": "75b1e36c0b3889096692685284ddc86c3fef25bb9a4be15ef077eda5d34a250a",
+    "width": 99,
+    "height": 109,
+    "bytes": 4708
+  },
+  {
+    "name": "action_add",
+    "source": "ui-reference/li-xu/assets/action_add.png",
+    "sourceSha256": "e5b66f3bc50de164e07135ba05dbdbc6236d72cd32d32f587996d413497687f1",
+    "width": 174,
+    "height": 150,
+    "bytes": 12026
+  },
+  {
+    "name": "action_search",
+    "source": "ui-reference/li-xu/assets/action_search.png",
+    "sourceSha256": "275600561b9fa54c87828f5f46744fdea79925a396b788080b5e1f03c4a5ea55",
+    "width": 144,
+    "height": 140,
+    "bytes": 4182
+  },
+  {
+    "name": "action_export",
+    "source": "ui-reference/li-xu/assets/action_export.png",
+    "sourceSha256": "85b0d3039b6912ca8d2be40b60f5b016da2184ebe307660822e97a3227d924dc",
+    "width": 144,
+    "height": 159,
+    "bytes": 6968
+  },
+  {
+    "name": "action_sync",
+    "source": "ui-reference/li-xu/assets/action_sync.png",
+    "sourceSha256": "e3515aa8ce3ab3ad8981dbf5d71aa6e99d6505a83ef3d3c902660b7ee170d628",
+    "width": 189,
+    "height": 146,
+    "bytes": 12372
+  },
+  {
+    "name": "action_settings",
+    "source": "ui-reference/li-xu/assets/action_settings.png",
+    "sourceSha256": "c55fd7d542a73b80a4ae6fdc0218c6e9bf982f4732f13f265c9a8b084c39864f",
+    "width": 147,
+    "height": 144,
+    "bytes": 10050
+  },
+  {
+    "name": "action_more",
+    "source": "ui-reference/li-xu/assets/action_more.png",
+    "sourceSha256": "ae12f11e81daffcef572be4f81e45eec28eb266048139b0d8e5922b0308030bf",
+    "width": 120,
+    "height": 33,
+    "bytes": 1568
+  },
+  {
+    "name": "action_back",
+    "source": "ui-reference/li-xu/assets/action_back.png",
+    "sourceSha256": "49dac3972aee23b3cc5812ebb5275c88c1586ef8c24cc939987277a5b5f05d1d",
+    "width": 160,
+    "height": 154,
+    "bytes": 10912
+  },
+  {
+    "name": "action_next",
+    "source": "ui-reference/li-xu/assets/action_next.png",
+    "sourceSha256": "4f2e6e9513d4358943167e11b4f4e273ddca68d20c9de440a895d3dc506b61d2",
+    "width": 165,
+    "height": 153,
+    "bytes": 10748
+  },
+  {
+    "name": "action_notification",
+    "source": "ui-reference/li-xu/assets/action_notification.png",
+    "sourceSha256": "311e13a645d3a525600af9224c401025773389f474a15ddecbdad6d0a78b8741",
+    "width": 138,
+    "height": 153,
+    "bytes": 7456
+  },
+  {
+    "name": "action_edit",
+    "source": "ui-reference/li-xu/assets/action_edit.png",
+    "sourceSha256": "74f316821bc2849cb577d41cbdd7a8867af543e35c18cce1409f06607e75c95e",
+    "width": 128,
+    "height": 140,
+    "bytes": 5330
+  },
+  {
+    "name": "action_download",
+    "source": "ui-reference/li-xu/assets/action_download.png",
+    "sourceSha256": "786e7529589de01ebce9229d53c4186c2c0480716d540a4a0c62eefe4465b9ea",
+    "width": 129,
+    "height": 125,
+    "bytes": 3056
+  },
+  {
+    "name": "state_gift_sent",
+    "source": "ui-reference/li-xu/assets/state_gift_sent.png",
+    "sourceSha256": "99d1ee3cfae101bfa7d301044dff402c49cf62ab566f1f53ad6e0fc6e5827536",
+    "width": 128,
+    "height": 117,
+    "bytes": 3706
+  },
+  {
+    "name": "state_locked",
+    "source": "ui-reference/li-xu/assets/state_locked.png",
+    "sourceSha256": "bdafb73f62e986fef600e667b06e88ac7015d1e98cb6e64fdaf6fc9de593ef6c",
+    "width": 115,
+    "height": 127,
+    "bytes": 4448
+  },
+  {
+    "name": "stat_list",
+    "source": "ui-reference/li-xu/assets/stat_list.png",
+    "sourceSha256": "58cebd1fa8cf1019fac381d55416e72784f6db9a30b04d00c703f0b87fbabfc6",
+    "width": 158,
+    "height": 172,
+    "bytes": 7370
+  },
+  {
+    "name": "nav_calendar_outline",
+    "source": "ui-reference/li-xu/assets/nav_calendar_outline.png",
+    "sourceSha256": "0100536669c5009288668b959f0b6d552e093c3e5ed07052a7d9626af48747c8",
+    "width": 109,
+    "height": 106,
+    "bytes": 3906
+  },
+  {
+    "name": "nav_home_outline",
+    "source": "ui-reference/li-xu/assets/nav_home_outline.png",
+    "sourceSha256": "d1aa085feaf62d6b9b6d165a2686b0b78cb5a4b2d776dde14d7687495fea7b10",
+    "width": 114,
+    "height": 108,
+    "bytes": 4652
+  },
+  {
+    "name": "event_wedding",
+    "source": "ui-reference/li-xu/assets/event_wedding.png",
+    "sourceSha256": "e02963f9ec8097e7249eb4fa05eced5e1247a0d6df439a47ddbe94c71cf0fa6f",
+    "width": 180,
+    "height": 193,
+    "bytes": 9050
+  },
+  {
+    "name": "decor_plum",
+    "source": "ui-reference/li-xu/assets/decor_plum.png",
+    "sourceSha256": "90b0e55167ede4c657ff070fad718a9f0ae7813d55a00bc2104440be5fc908ae",
+    "width": 224,
+    "height": 195,
+    "bytes": 13420
+  },
+  {
+    "name": "decor_bamboo",
+    "source": "ui-reference/li-xu/assets/decor_bamboo.png",
+    "sourceSha256": "c3bdc7eb7fc073f9d9b452cb1b7b6cdb44a169007bf8b37db5827d11e9a61ed5",
+    "width": 223,
+    "height": 194,
+    "bytes": 13458
+  },
+  {
+    "name": "decor_chrysanthemum",
+    "source": "ui-reference/li-xu/assets/decor_chrysanthemum.png",
+    "sourceSha256": "d124994782c098649f65b7aaf4a9c0985666c593265a16ce5d6d5538d4b1b277",
+    "width": 230,
+    "height": 198,
+    "bytes": 15418
+  },
+  {
+    "name": "decor_ginkgo",
+    "source": "ui-reference/li-xu/assets/decor_ginkgo.png",
+    "sourceSha256": "25f55b30f55fddbba79b1aa20e5a13533c068ea3cdea34838e9e248cd279b597",
+    "width": 230,
+    "height": 199,
+    "bytes": 12650
+  },
+  {
+    "name": "decor_cloud",
+    "source": "ui-reference/li-xu/assets/decor_cloud.png",
+    "sourceSha256": "29339a4f83db36b33448d7b039b57b7a2571e43a6e0bad0c1856314f8e0a1c4f",
+    "width": 248,
+    "height": 138,
+    "bytes": 10406
+  },
+  {
+    "name": "event_housewarming",
+    "source": "ui-reference/li-xu/assets/event_housewarming.png",
+    "sourceSha256": "d8a90704e70cc413e6c1357e2c36e2fb65f44615a285fa31c300959847743f83",
+    "width": 178,
+    "height": 194,
+    "bytes": 7926
+  },
+  {
+    "name": "background-6",
+    "source": "ui-reference/li-xu/assets/background-6.png",
+    "sourceSha256": "5fafee6c267737e89596d9a279179de315aead013fa0641c88a994504577547c",
+    "width": 941,
+    "height": 1672,
+    "bytes": 109390
+  },
+  {
+    "name": "background-8",
+    "source": "ui-reference/li-xu/assets/background-8.png",
+    "sourceSha256": "d435fa38ba17a0403717d00aafd34255050bb19439b59229bfaa9b888a1c68d3",
+    "width": 941,
+    "height": 1672,
+    "bytes": 68420
+  },
+  {
+    "name": "background-9",
+    "source": "ui-reference/li-xu/assets/background-9.png",
+    "sourceSha256": "3f9a78d946397c644e1e60d17b36210c4dcba8d9c3b4696102150a2d0d90dfcb",
+    "width": 941,
+    "height": 1672,
+    "bytes": 109238
+  },
+  {
+    "name": "cover-wedding",
+    "source": "ui-reference/li-xu/assets/cover-wedding.png",
+    "sourceSha256": "93aa6ac58da86ce25b0082f6f4047a4c35790944e7443e5604e13a23c43d48a4",
+    "width": 750,
+    "height": 1000,
+    "bytes": 156824
+  },
+  {
+    "name": "cover-baby",
+    "source": "ui-reference/li-xu/assets/cover-baby.png",
+    "sourceSha256": "d08d5e47ead3752f14ba96fab3a05fb7acf8a5f01d9547aff33486e6eb3d5aa0",
+    "width": 750,
+    "height": 1000,
+    "bytes": 152022
+  },
+  {
+    "name": "cover-housewarming",
+    "source": "ui-reference/li-xu/assets/cover-housewarming.png",
+    "sourceSha256": "fa781a9a122c9889992b2f73956011f91a6def3cfd813668356d5ba9ba98584c",
+    "width": 750,
+    "height": 1000,
+    "bytes": 182672
+  },
+  {
+    "name": "cover-longevity",
+    "source": "ui-reference/li-xu/assets/cover-longevity.png",
+    "sourceSha256": "6599ce0ca0f2837a9d4953cbb6f0749ff098ecb81f48dab18fedea4397637419",
+    "width": 750,
+    "height": 1000,
+    "bytes": 191666
+  },
+  {
+    "name": "cover-graduation",
+    "source": "ui-reference/li-xu/assets/cover-graduation.png",
+    "sourceSha256": "858046905602c842a4c354bdbcb49d658b9e4f7cfe586e5f14f425f7ddc98053",
+    "width": 750,
+    "height": 1000,
+    "bytes": 131152
+  },
+  {
+    "name": "cover-memorial",
+    "source": "ui-reference/li-xu/assets/cover-memorial.png",
+    "sourceSha256": "e4f4938d46c214c7e2e1eb49999ceb1f039f2d1168d1481802b26a4d0a1c7a29",
+    "width": 750,
+    "height": 1000,
+    "bytes": 263388
+  }
+]

@@ -1,0 +1,1 @@
+Component({options:{styleIsolation:'apply-shared'},properties:{title:String,back:{type:Boolean,value:true},action:String,hero:Boolean},data:{statusHeight:24},lifetimes:{attached(){this.setData({statusHeight:getApp().globalData.statusBarHeight||24});}},methods:{back(){require('../../utils/page').back();},action(){this.triggerEvent('action');}}});

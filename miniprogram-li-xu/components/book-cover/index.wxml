@@ -1,0 +1,1 @@
+<view class="cover-slot cover-{{kind}}"><image class="original-cover" src="{{source}}" mode="scaleToFill" aria-label="{{label}}"/></view>

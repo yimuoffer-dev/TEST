@@ -1,0 +1,1 @@
+:host{display:block;flex-shrink:0}.cover-slot{position:relative;overflow:hidden;width:245rpx;height:212rpx}.original-cover{position:absolute;width:123%;height:120%;left:-11.5%;top:-9%;max-width:none}.cover-home{width:328.48rpx;height:312.86rpx}.cover-summary{width:243.34rpx;height:321.55rpx}.cover-compact{width:192.93rpx;height:191.19rpx}

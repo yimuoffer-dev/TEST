@@ -1,0 +1,1 @@
+<view class="background-scene" aria-hidden="true"><image class="full-background" src="/assets/background-{{scene}}.webp" mode="scaleToFill"/><view class="paper-overlay"></view><view wx:if="{{branch}}" class="branch-crop"><image src="/assets/background-6.webp" mode="widthFix"/></view></view>

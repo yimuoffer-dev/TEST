@@ -1,0 +1,1 @@
+{"name":"lixu-native-miniprogram","private":true,"version":"1.0.0","type":"commonjs","scripts":{"test":"node --test tests/*.test.cjs","validate":"python3 scripts/validate.py"}}

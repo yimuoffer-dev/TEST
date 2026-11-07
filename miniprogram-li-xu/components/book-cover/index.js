@@ -1,0 +1,2 @@
+const COVERS=['cover-wedding','cover-baby','cover-housewarming','cover-longevity','cover-graduation','cover-memorial'];
+Component({options:{styleIsolation:'apply-shared'},properties:{cover:{type:String,value:'cover-wedding',observer(value){this.setData({source:'/assets/'+(COVERS.includes(value)?value:'cover-wedding')+'.webp'});}},kind:{type:String,value:'list'},label:String},data:{source:'/assets/cover-wedding.webp'}});

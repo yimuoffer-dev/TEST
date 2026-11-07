@@ -1,0 +1,1 @@
+<image class="flower-art" src="{{source}}" style="width:{{size}}rpx;height:{{size}}rpx" mode="aspectFit" aria-hidden="true"/>

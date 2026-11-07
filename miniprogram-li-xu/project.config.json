@@ -1,0 +1,45 @@
+{
+  "appid": "touristappid",
+  "projectname": "lixu-native",
+  "description": "礼序原生八页 UI 复刻",
+  "compileType": "miniprogram",
+  "libVersion": "3.7.0",
+  "setting": {
+    "es6": true,
+    "enhance": true,
+    "minified": true,
+    "urlCheck": true
+  },
+  "packOptions": {
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "scripts"
+      },
+      {
+        "type": "folder",
+        "value": "tests"
+      },
+      {
+        "type": "file",
+        "value": "README.md"
+      },
+      {
+        "type": "file",
+        "value": "VALIDATION.md"
+      },
+      {
+        "type": "file",
+        "value": "assets/manifest.json"
+      },
+      {
+        "type": "file",
+        "value": "styles/design.wxss"
+      },
+      {
+        "type": "file",
+        "value": "package.json"
+      }
+    ]
+  }
+}

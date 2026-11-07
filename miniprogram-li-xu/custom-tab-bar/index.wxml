@@ -1,0 +1,1 @@
+<view class="bottom-navigation"><button wx:for="{{tabs}}" wx:key="key" class="nav-item tap {{selected === index ? 'active' : ''}}" data-page="{{item.key}}" bindtap="select"><image class="nav-icon" src="/assets/{{item.icon}}_{{selected === index ? 'selected' : 'outline'}}.webp" mode="aspectFit"/><text>{{item.label}}</text></button></view>
