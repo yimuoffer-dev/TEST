@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 from io import BytesIO
 import base64,json,zipfile
@@ -16,6 +17,8 @@ for name,data in images.items():
  css=css.replace('assets/'+name+'.png',data)
 css=css.replace('assets/lixu-serif.woff','data:font/woff;base64,'+base64.b64encode((root/'assets/lixu-serif.woff').read_bytes()).decode())
 html=(root/'index.html').read_text().replace('<link rel="stylesheet" href="style.css">','<style>'+css+'</style>').replace('<link rel="stylesheet" href="calibration.css">','').replace('<script src="app.js"></script>','<script>'+js+'</script>')
+script_hash=base64.b64encode(hashlib.sha256(js.encode()).digest()).decode()
+html=html.replace("script-src 'self'", "script-src 'sha256-"+script_hash+"'")
 (root/'礼序-轻量版.html').write_text(html)
 with zipfile.ZipFile(root/'礼序-下载包.zip','w',zipfile.ZIP_DEFLATED) as z:
  z.write(root/'礼序-轻量版.html','礼序.html')

@@ -31,3 +31,5 @@
 聊天中的 `/workspace/...` 是云环境内部文件路径，不是公网网页地址，部分客户端不能直接预览。请从环境文件列表下载 `礼序-下载包.zip`，解压后用 Chrome/Edge 打开 `礼序.html`。下载包约 4.8 MB，内含约 6.3 MB 的单文件轻量版；图片转换为 WebP，原始 PNG 素材和原图版本保持不变。轻量版与原图版使用同一套布局和交互，压缩图片会有细微画质差异。
 
 运行 `python3 ui-reference/li-xu/build-compact.py` 重新生成轻量版及下载包（需要 Pillow）；运行 `node ui-reference/li-xu/verify-compact.cjs` 验证八个页面和图片、字体嵌入。
+
+下载拦截的证据、已修复的页面注入问题及检测局限见 [SECURITY-REVIEW.md](SECURITY-REVIEW.md)。新版本校验值在 `SHA256SUMS.txt`。安全回归命令：`node ui-reference/li-xu/verify-security.cjs`。
