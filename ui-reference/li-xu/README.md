@@ -1,5 +1,7 @@
 # 礼序 · 八屏 HTML 复刻
 
+> 下载安全状态未解决：用户确认修复后的下载包仍被检测为 `Trojan:Script/Wacatac.B!ml`。请保留防护，不强行运行、不添加排除项。源码检查与网页安全测试不能替代 Defender 查杀及微软复核。详见 [排查记录](SECURITY-REVIEW.md)。
+
 打开 `index.html` 即可使用，无构建步骤、无 CDN 或网络依赖。内嵌 Noto Serif CJK SC 的页面字形子集（附字体许可），其余用户输入字符使用系统宋体回退。
 
 八个界面：`#home` 首页、`#books` 全部礼簿、`#book` 礼簿详情、`#entry` 记一笔、`#people` 人情往来、`#person` 往来详情、`#stats` 统计、`#profile` 我的。
